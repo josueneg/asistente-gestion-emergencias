@@ -567,6 +567,15 @@ widgetUrlForm.addEventListener("submit", (e) => {
     showConfig();
     return;
   }
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  } catch {
+    // Configuración guardada inválida (ej. URL mal pegada): borrarla y
+    // volver a pedirla, en vez de dejar la página en blanco.
+    localStorage.removeItem(LS_URL);
+    localStorage.removeItem(LS_ANON);
+    showConfig();
+    return;
+  }
   checkSession();
 })();
