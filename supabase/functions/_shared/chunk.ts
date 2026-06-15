@@ -2,8 +2,8 @@
 // para indexarlos individualmente en la base vectorial.
 export function chunkText(
   text: string,
-  maxChars = 1500,
-  overlap = 200,
+  maxChars = 3000,
+  overlap = 300,
 ): string[] {
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (!cleaned) return [];

@@ -10,6 +10,15 @@ export const EMBEDDING_DIM = 768;
 
 export type EmbeddingTaskType = "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY";
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Reintentos con espera creciente para 429 (cuota excedida) y 503
+// (modelo sobrecargado), que son errores temporales típicos de la
+// cuota gratuita de Gemini.
+const RETRY_DELAYS_MS = [2000, 5000, 10000, 20000];
+
 export async function embedText(
   text: string,
   taskType: EmbeddingTaskType,
@@ -21,26 +30,37 @@ export async function embedText(
 
   const url =
     `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: `models/${EMBEDDING_MODEL}`,
-      content: { parts: [{ text }] },
-      taskType,
-      outputDimensionality: EMBEDDING_DIM,
-    }),
+  const body = JSON.stringify({
+    model: `models/${EMBEDDING_MODEL}`,
+    content: { parts: [{ text }] },
+    taskType,
+    outputDimensionality: EMBEDDING_DIM,
   });
 
-  if (!res.ok) {
-    throw new Error(`Error de Gemini embeddings (${res.status}): ${await res.text()}`);
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const values = data?.embedding?.values;
+      if (!Array.isArray(values)) {
+        throw new Error("Respuesta de Gemini embeddings sin 'embedding.values'");
+      }
+      return values as number[];
+    }
+
+    const errText = await res.text();
+    const canRetry = (res.status === 429 || res.status === 503) &&
+      attempt < RETRY_DELAYS_MS.length;
+    if (!canRetry) {
+      throw new Error(`Error de Gemini embeddings (${res.status}): ${errText}`);
+    }
+    await sleep(RETRY_DELAYS_MS[attempt]);
   }
 
-  const data = await res.json();
-  const values = data?.embedding?.values;
-  if (!Array.isArray(values)) {
-    throw new Error("Respuesta de Gemini embeddings sin 'embedding.values'");
-  }
-  return values as number[];
+  throw new Error("Error de Gemini embeddings: reintentos agotados");
 }
