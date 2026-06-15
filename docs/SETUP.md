@@ -24,15 +24,15 @@ Tiempo estimado: 45-60 minutos. Hazlo en orden, sin saltar pasos.
 ## 1. Subir el proyecto a GitHub
 
 1. Crea una cuenta gratuita en [github.com](https://github.com) si no tienes una.
-2. Crea un repositorio **nuevo y público** (por ejemplo, llamado `coe-panama-asistente`).
+2. Crea un repositorio **nuevo y público** (por ejemplo, llamado `asistente-gestion-emergencias`).
    No marques ninguna opción de "inicializar con README" (este proyecto ya tiene archivos).
-3. En la Terminal, dentro de la carpeta `coe-panama-asistente`, ejecuta (reemplaza
+3. En la Terminal, dentro de la carpeta `asistente-gestion-emergencias`, ejecuta (reemplaza
    `TU-USUARIO` por tu usuario de GitHub):
 
    ```bash
    git add -A
-   git commit -m "Version inicial del asistente COE"
-   git remote add origin https://github.com/TU-USUARIO/coe-panama-asistente.git
+   git commit -m "Version inicial del asistente"
+   git remote add origin https://github.com/TU-USUARIO/asistente-gestion-emergencias.git
    git push -u origin main
    ```
 
@@ -96,7 +96,7 @@ supabase login
 Esto abre el navegador para autorizar. Luego, dentro de la carpeta del proyecto:
 
 ```bash
-cd ~/coe-panama-asistente
+cd ~/asistente-gestion-emergencias
 supabase link --project-ref TU_PROJECT_REF
 ```
 
@@ -170,19 +170,19 @@ A partir de aquí, el workflow se ejecuta solo cada 15 minutos.
 
 1. Ve a [dash.cloudflare.com](https://dash.cloudflare.com) y crea una cuenta gratuita.
 2. Entra a **Workers & Pages → Create → Pages → Connect to Git**.
-3. Selecciona tu repositorio `coe-panama-asistente`.
+3. Selecciona tu repositorio `asistente-gestion-emergencias`.
 4. En "Build settings":
    - **Framework preset**: None
    - **Build command**: (déjalo vacío)
    - **Build output directory**: `/` (la raíz del repositorio)
 5. Haz clic en **Save and Deploy**. Cloudflare te dará una URL como
-   `https://coe-panama-asistente.pages.dev`.
+   `https://asistente-gestion-emergencias.pages.dev`.
 
 Con esta configuración, tus páginas quedan disponibles en:
 
-- Widget: `https://coe-panama-asistente.pages.dev/widget/widget.js`
-- Demo del widget: `https://coe-panama-asistente.pages.dev/widget/`
-- Panel admin: `https://coe-panama-asistente.pages.dev/admin/`
+- Widget: `https://asistente-gestion-emergencias.pages.dev/widget/widget.js`
+- Demo del widget: `https://asistente-gestion-emergencias.pages.dev/widget/`
+- Panel admin: `https://asistente-gestion-emergencias.pages.dev/admin/`
 
 ---
 

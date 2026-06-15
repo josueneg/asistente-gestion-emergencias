@@ -1,5 +1,5 @@
 /**
- * Asistente IA COE Panamá - widget embebible
+ * Asistente de Gestión de Emergencias - widget embebible
  * ============================================================
  * Insertar en cualquier sitio web con:
  *
@@ -33,13 +33,13 @@
     anonKey: scriptEl.dataset.supabaseAnonKey || "",
     siteKey: scriptEl.dataset.siteKey || "",
     lang: scriptEl.dataset.lang || "es-ES",
-    title: scriptEl.dataset.title || "Asistente COE Panamá",
+    title: scriptEl.dataset.title || "Asistente de Gestión de Emergencias",
     pollMs: parseInt(scriptEl.dataset.pollMs || "60000", 10),
   };
 
   if (!config.supabaseUrl || !config.anonKey || !config.siteKey) {
     console.error(
-      "[Asistente COE] Faltan atributos data-supabase-url, data-supabase-anon-key o data-site-key en el <script>.",
+      "[Asistente] Faltan atributos data-supabase-url, data-supabase-anon-key o data-site-key en el <script>.",
     );
     return;
   }
@@ -326,7 +326,7 @@
       if (esVoice) utter.voice = esVoice;
       window.speechSynthesis.speak(utter);
     } catch (e) {
-      console.warn("[Asistente COE] No se pudo usar la síntesis de voz:", e);
+      console.warn("[Asistente] No se pudo usar la síntesis de voz:", e);
     }
   }
 
@@ -387,7 +387,7 @@
         }
       })
       .catch(function (err) {
-        console.warn("[Asistente COE] No se pudieron cargar las alertas:", err);
+        console.warn("[Asistente] No se pudieron cargar las alertas:", err);
       });
   }
 
@@ -408,7 +408,7 @@
         });
       })
       .catch(function (err) {
-        console.warn("[Asistente COE] No se pudo revisar nuevas alertas:", err);
+        console.warn("[Asistente] No se pudo revisar nuevas alertas:", err);
       });
   }
 
@@ -452,7 +452,7 @@
       .catch(function (err) {
         thinking.remove();
         renderBotMessage("No se pudo conectar con el asistente. Intenta de nuevo más tarde.");
-        console.error("[Asistente COE] Error en el chat:", err);
+        console.error("[Asistente] Error en el chat:", err);
       })
       .finally(function () {
         sendBtn.disabled = false;

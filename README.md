@@ -1,4 +1,4 @@
-# Asistente IA - COE Panamá
+# Asistente de Gestión de Emergencias
 
 Asistente de inteligencia artificial **gratuito**, embebible en cualquier sitio web, pensado para apoyar a un Centro de Operaciones de Emergencia (COE) en Panamá.
 
@@ -23,7 +23,7 @@ Todo funciona sobre servicios con plan gratuito: GitHub, Groq, Google AI Studio,
 ## Estructura del proyecto
 
 ```
-coe-panama-asistente/
+asistente-gestion-emergencias/
 ├── supabase/            # Base de datos (pgvector) y funciones backend (Edge Functions)
 ├── scripts/             # Script del monitoreo de clima
 ├── .github/workflows/   # Cron 24/7 que ejecuta el monitoreo de clima

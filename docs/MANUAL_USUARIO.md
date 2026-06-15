@@ -1,4 +1,4 @@
-# Manual de uso — Asistente COE Panamá
+# Manual de uso — Asistente de Gestión de Emergencias
 
 Este manual está dirigido al personal del Centro de Operaciones de Emergencia
 (COE) que usará el asistente día a día: tanto quienes **consultan** el

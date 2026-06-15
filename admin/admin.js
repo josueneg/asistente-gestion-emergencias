@@ -1,5 +1,5 @@
 // ============================================================
-// Panel de administración - Asistente COE Panamá
+// Panel de administración - Asistente de Gestión de Emergencias
 // ============================================================
 // Permite: subir documentos (PDF/Word/Excel/texto), configurar
 // las ubicaciones y umbrales de clima, ver el historial de
