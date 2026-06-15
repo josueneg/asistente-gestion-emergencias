@@ -1,0 +1,28 @@
+name: Monitoreo de clima COE
+
+# Se ejecuta cada 15 minutos, las 24 horas, en un repo público
+# (minutos de GitHub Actions ilimitados para repos públicos).
+# También se puede ejecutar manualmente desde la pestaña "Actions".
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check-weather:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Ejecutar verificación de clima
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          WEATHER_CRON_SECRET: ${{ secrets.WEATHER_CRON_SECRET }}
+        run: node scripts/weather-check.mjs

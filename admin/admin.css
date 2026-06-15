@@ -1,0 +1,173 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1c2b33;
+  background: #f4f6f8;
+}
+
+header {
+  background: #0b4f6c;
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.hidden {
+  display: none !important;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input, textarea {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid #d6dade;
+  border-radius: 6px;
+}
+
+button {
+  align-self: flex-start;
+  background: #0b4f6c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0d6986;
+}
+
+button.secondary {
+  background: #6b7785;
+}
+
+.error {
+  color: #e63946;
+  font-size: 13px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th, td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e6e9ec;
+  vertical-align: top;
+}
+
+th {
+  color: #555;
+  font-weight: 600;
+}
+
+#tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+#tabs .tab {
+  background: #e6e9ec;
+  color: #1c2b33;
+  border-radius: 6px 6px 0 0;
+}
+
+#tabs .tab.active {
+  background: #0b4f6c;
+  color: #fff;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.badge-pending { background: #999; }
+.badge-indexed { background: #2a9d8f; }
+.badge-error { background: #e63946; }
+
+.badge-info { background: #4a90d9; }
+.badge-bajo { background: #f4c542; color: #333; }
+.badge-medio { background: #f28c28; }
+.badge-alto { background: #e63946; }
+
+.snippet-box {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 11px;
+  background: #1c2b33;
+  color: #f4f6f8;
+  padding: 8px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-width: 360px;
+}
+
+.row-actions button {
+  font-size: 12px;
+  padding: 4px 8px;
+}

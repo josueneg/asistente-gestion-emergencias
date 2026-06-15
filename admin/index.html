@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de administración - Asistente COE Panamá</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <header>
+    <h1>Asistente COE Panamá</h1>
+    <button id="logout-btn" class="hidden">Cerrar sesión</button>
+  </header>
+
+  <main>
+    <!-- Paso 1: configuración de conexión (solo la primera vez en este navegador) -->
+    <section id="config-section" class="card hidden">
+      <h2>Configuración inicial</h2>
+      <p>
+        Estos datos se guardan únicamente en este navegador. Los encuentras en tu proyecto de
+        Supabase, en <strong>Settings → API</strong>. Ver
+        <a href="../docs/SETUP.md" target="_blank">docs/SETUP.md</a> para más detalle.
+      </p>
+      <form id="config-form">
+        <label>
+          URL del proyecto Supabase
+          <input type="url" id="cfg-url" placeholder="https://xxxxxxxx.supabase.co" required />
+        </label>
+        <label>
+          Anon key (clave pública)
+          <input type="text" id="cfg-anon" placeholder="eyJhbGciOi..." required />
+        </label>
+        <button type="submit">Guardar y continuar</button>
+      </form>
+    </section>
+
+    <!-- Paso 2: inicio de sesión -->
+    <section id="login-section" class="card hidden">
+      <h2>Iniciar sesión</h2>
+      <p>
+        Usa el correo y contraseña que el administrador creó para ti en Supabase
+        (Authentication → Users). Ver <a href="../docs/SETUP.md" target="_blank">docs/SETUP.md</a>.
+      </p>
+      <form id="login-form">
+        <label>Correo <input type="email" id="login-email" required /></label>
+        <label>Contraseña <input type="password" id="login-password" required /></label>
+        <button type="submit">Entrar</button>
+      </form>
+      <p id="login-error" class="error hidden"></p>
+      <p><a href="#" id="change-config-link">Cambiar configuración de conexión</a></p>
+    </section>
+
+    <!-- Aplicación principal -->
+    <section id="app-section" class="hidden">
+      <nav id="tabs">
+        <button data-tab="documentos" class="tab active">Documentos</button>
+        <button data-tab="clima" class="tab">Clima</button>
+        <button data-tab="alertas" class="tab">Alertas</button>
+        <button data-tab="sitios" class="tab">Sitios / Embed</button>
+      </nav>
+
+      <!-- Documentos -->
+      <div id="tab-documentos" class="tab-panel active">
+        <div class="card">
+          <h2>Subir documento (PDF, Word o Excel)</h2>
+          <p>El archivo se procesa en tu navegador; solo se envía el texto extraído al servidor.</p>
+          <input type="file" id="file-input" accept=".pdf,.docx,.xlsx,.xls" />
+          <p id="upload-status"></p>
+        </div>
+
+        <div class="card">
+          <h2>Agregar texto o contenido de una página web</h2>
+          <p>
+            Útil para pegar el contenido de un enlace (copia el texto de la página) o notas
+            adicionales que quieras que el asistente conozca.
+          </p>
+          <form id="text-form">
+            <label>Título / nombre de la fuente
+              <input type="text" id="text-title" placeholder="Ej: Plan de contingencia - sitio web SINAPROC" required />
+            </label>
+            <label>Contenido
+              <textarea id="text-content" rows="6" placeholder="Pega aquí el texto..." required></textarea>
+            </label>
+            <button type="submit">Agregar al asistente</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Documentos indexados</h2>
+          <table id="documents-table">
+            <thead>
+              <tr><th>Archivo</th><th>Estado</th><th>Fecha</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Clima -->
+      <div id="tab-clima" class="tab-panel">
+        <div class="card">
+          <h2>Ubicaciones monitoreadas</h2>
+          <p>
+            El monitoreo de clima corre cada 15 minutos (GitHub Actions) y compara el pronóstico
+            de varios modelos meteorológicos contra estos umbrales.
+          </p>
+          <table id="weather-table">
+            <thead>
+              <tr>
+                <th>Ubicación</th><th>Lat</th><th>Lon</th>
+                <th>Umbral lluvia (mm/h)</th><th>Umbral viento (km/h)</th>
+                <th>Activo</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Agregar ubicación</h2>
+          <form id="weather-form">
+            <label>Nombre <input type="text" id="w-name" placeholder="Ej: Colón" required /></label>
+            <label>Latitud <input type="number" step="any" id="w-lat" required /></label>
+            <label>Longitud <input type="number" step="any" id="w-lon" required /></label>
+            <label>Umbral lluvia (mm/h) <input type="number" step="any" id="w-rain" value="10" required /></label>
+            <label>Umbral viento (km/h) <input type="number" step="any" id="w-wind" value="50" required /></label>
+            <button type="submit">Agregar</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Alertas -->
+      <div id="tab-alertas" class="tab-panel">
+        <div class="card">
+          <h2>Historial de alertas</h2>
+          <table id="alerts-table">
+            <thead>
+              <tr><th>Fecha</th><th>Tipo</th><th>Severidad</th><th>Título</th><th>Mensaje</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sitios / Embed -->
+      <div id="tab-sitios" class="tab-panel">
+        <div class="card">
+          <h2>URL pública de widget.js</h2>
+          <p>
+            La dirección donde quedará publicado <code>widget.js</code> una vez despliegues la
+            carpeta <code>widget/</code> en Cloudflare Pages (ver
+            <a href="../docs/SETUP.md" target="_blank">docs/SETUP.md</a>). Se usa para generar el
+            snippet de cada sitio.
+          </p>
+          <form id="widget-url-form">
+            <label>URL de widget.js
+              <input type="url" id="widget-url-input" placeholder="https://tu-proyecto.pages.dev/widget.js" />
+            </label>
+            <button type="submit">Guardar</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Sitios autorizados</h2>
+          <p>Cada sitio donde insertes el widget debe tener su propia clave (<code>site_key</code>).</p>
+          <table id="sites-table">
+            <thead><tr><th>Nombre</th><th>Origen permitido</th><th>Snippet</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Crear nuevo sitio</h2>
+          <form id="site-form">
+            <label>Nombre <input type="text" id="s-name" placeholder="Ej: Sitio web del COE" required /></label>
+            <label>
+              Origen permitido (opcional)
+              <input type="text" id="s-origin" placeholder="https://misitio.gob.pa o * para cualquiera" value="*" />
+            </label>
+            <button type="submit">Crear</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

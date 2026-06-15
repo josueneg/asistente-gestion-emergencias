@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo - Asistente IA COE Panamá</title>
+  <link rel="stylesheet" href="widget.css" />
+</head>
+<body>
+  <header>
+    <h1>Asistente IA - COE Panamá</h1>
+    <p>Página de prueba para verificar que el widget embebible funciona correctamente.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>¿Cómo probar esta página?</h2>
+      <ol>
+        <li>Sigue <a href="../docs/SETUP.md">docs/SETUP.md</a> para desplegar la base de datos, las funciones y obtener tus credenciales.</li>
+        <li>Reemplaza los valores <code>data-*</code> del <code>&lt;script&gt;</code> al final de esta página con los de tu proyecto.</li>
+        <li>Abre este archivo en el navegador y haz clic en el botón flotante 🆘 (esquina inferior derecha).</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Insertar el asistente en cualquier sitio web</h2>
+      <p>Copia y pega esta etiqueta justo antes de <code>&lt;/body&gt;</code> en cualquier página:</p>
+      <pre><code>&lt;script
+  src="https://TU-PROYECTO.pages.dev/widget.js"
+  data-supabase-url="https://TU-PROYECTO.supabase.co"
+  data-supabase-anon-key="TU_ANON_KEY"
+  data-site-key="TU_SITE_KEY"
+&gt;&lt;/script&gt;</code></pre>
+      <p>
+        El <a href="../admin/index.html">panel de administración</a> genera este fragmento
+        automáticamente con tus credenciales y el <code>site_key</code> que crees para ese sitio.
+      </p>
+    </section>
+
+    <section>
+      <h2>Qué hace el botón flotante</h2>
+      <ul>
+        <li><strong>Chat:</strong> responde preguntas basándose en los documentos del COE que subas.</li>
+        <li><strong>Alertas de clima:</strong> aparecen automáticamente como tarjetas y avisos (toast).</li>
+        <li><strong>🔊 Voz:</strong> activa o desactiva que las alertas se lean en voz alta.</li>
+        <li><strong>🔔 Notificaciones:</strong> pide permiso para mostrar notificaciones del sistema.</li>
+      </ul>
+    </section>
+  </main>
+
+  <!-- ============================================================
+       WIDGET DE PRUEBA
+       Reemplaza estos valores con los de TU proyecto de Supabase
+       y el site_key generado en el panel de administración.
+       ============================================================ -->
+  <script
+    src="widget.js"
+    data-supabase-url="https://TU-PROYECTO.supabase.co"
+    data-supabase-anon-key="TU_ANON_KEY"
+    data-site-key="TU_SITE_KEY"
+    data-title="Asistente COE Panamá (demo)"
+  ></script>
+</body>
+</html>
