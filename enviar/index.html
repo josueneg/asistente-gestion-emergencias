@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enviar un documento - Asistente de Gestión de Emergencias</title>
+  <link rel="stylesheet" href="../shared/public.css" />
+</head>
+<body>
+  <header>
+    <h1>Asistente de Gestión de Emergencias</h1>
+    <p>Enviar un documento para la biblioteca</p>
+  </header>
+
+  <main>
+    <nav class="crumbs"><a href="../index.html">← Volver al inicio</a> · <a href="../biblioteca/index.html">Ver biblioteca</a></nav>
+
+    <div class="card">
+      <h2>¿Cómo funciona?</h2>
+      <p>
+        Cualquier persona puede proponer planes, manuales, protocolos o guías de gestión de
+        emergencias para que el asistente los use al responder preguntas y generar
+        recomendaciones.
+      </p>
+      <p>
+        Tu documento <strong>no se usa de inmediato</strong>: primero queda en una bandeja de
+        revisión y el equipo del COE lo aprueba o lo rechaza manualmente (puede tardar minutos,
+        días o semanas). Si lo aprueban, pasa a formar parte de la
+        <a href="../biblioteca/index.html">biblioteca pública</a>. Si lo rechazan, se elimina por
+        completo.
+      </p>
+      <p class="hint">
+        Formatos aceptados: PDF, Word (.docx) o Excel (.xlsx/.xls). El archivo se procesa en tu
+        navegador; solo se envía el texto extraído.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Datos del documento</h2>
+      <form id="submit-form">
+        <label>
+          Archivo (PDF, DOCX o XLSX)
+          <input type="file" id="f-file" accept=".pdf,.docx,.xlsx,.xls" required />
+        </label>
+
+        <label>
+          País de procedencia (de dónde viene el documento)
+          <select id="f-country-origin" required></select>
+        </label>
+
+        <label>
+          País al que aplica
+          <select id="f-country-applicable"></select>
+        </label>
+
+        <label>
+          Descripción breve (opcional)
+          <textarea id="f-description" rows="3" placeholder="Ej: Plan nacional de respuesta a inundaciones, edición 2024"></textarea>
+        </label>
+
+        <label>
+          Tu nombre (opcional)
+          <input type="text" id="f-name" placeholder="Para darte crédito y poder contactarte" />
+        </label>
+
+        <label>
+          Tu correo (opcional)
+          <input type="email" id="f-email" placeholder="Te avisaremos cuando sea revisado" />
+        </label>
+
+        <button type="submit" id="submit-btn">Enviar para revisión</button>
+        <p id="submit-status"></p>
+      </form>
+    </div>
+  </main>
+
+  <script type="module" src="enviar.js"></script>
+</body>
+</html>

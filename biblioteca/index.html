@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biblioteca de documentos - Asistente de Gestión de Emergencias</title>
+  <link rel="stylesheet" href="../shared/public.css" />
+</head>
+<body>
+  <header>
+    <h1>Asistente de Gestión de Emergencias</h1>
+    <p>Biblioteca de documentos aprobados</p>
+  </header>
+
+  <main>
+    <nav class="crumbs"><a href="../index.html">← Volver al inicio</a> · <a href="../enviar/index.html">Enviar un documento</a></nav>
+
+    <div class="card">
+      <h2>Transparencia</h2>
+      <p>
+        Estos son los documentos (planes, manuales, protocolos y guías) que el asistente está
+        usando actualmente para responder preguntas y generar recomendaciones. Todos fueron
+        revisados y aprobados manualmente por el equipo del COE.
+      </p>
+      <p class="hint">
+        ¿Tienes un documento que debería estar aquí? Puedes
+        <a href="../enviar/index.html">enviarlo para revisión</a>.
+      </p>
+    </div>
+
+    <div class="card">
+      <label>
+        Filtrar por país
+        <select id="country-filter"></select>
+      </label>
+    </div>
+
+    <p id="doc-status" class="hint"></p>
+    <div id="doc-list"></div>
+  </main>
+
+  <script type="module" src="biblioteca.js"></script>
+</body>
+</html>

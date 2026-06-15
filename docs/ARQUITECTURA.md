@@ -80,7 +80,10 @@ momento de responder, sin tener que re-entrenar ningún modelo.
    también se convierte en un embedding. Postgres compara ese vector contra
    todos los de `doc_chunks` usando la operación `<=>` (distancia de coseno,
    acelerada por un índice **HNSW**) y devuelve los 5 fragmentos más
-   parecidos — `match_doc_chunks()` en la migración.
+   parecidos — `match_doc_chunks()` en la migración. Solo se buscan fragmentos
+   de documentos **aprobados** (`approval_status='approved'`, ver sección 7) y,
+   si se indica un país, se priorizan los documentos aplicables a ese país más
+   los "generales" (sin país específico).
 
 3. Esos fragmentos se insertan como "contexto" en el prompt que se envía a
    Groq, junto con instrucciones de responder como asistente del COE. El
@@ -186,11 +189,95 @@ diseño), pero limita el daño de un uso indebido o un bucle accidental.
 Página estática (sin build) servida junto al widget en Cloudflare Pages.
 Usa Supabase Auth para que solo personal autorizado del COE pueda:
 
-- Subir/eliminar documentos y ver su estado de indexado.
+- Subir/eliminar documentos (con país de procedencia/aplicable y descripción
+  opcionales) y ver su estado de indexado.
+- Revisar la **bandeja de entrada** de documentos enviados por el público y
+  aprobarlos o rechazarlos (ver sección 7).
 - Configurar ubicaciones y umbrales de clima.
 - Ver el historial de alertas generadas.
-- Crear "sitios" (cada sitio = un `site_key`) y copiar el snippet de embed
-  listo para pegar, incluyendo la URL pública de `widget.js`.
+- Crear "sitios" (cada sitio = un `site_key`, opcionalmente con un país por
+  defecto) y copiar el snippet de embed listo para pegar, incluyendo la URL
+  pública de `widget.js`.
+
+### 7. Biblioteca pública de documentos (revisión manual + recomendaciones por país)
+
+**Problema que resuelve**: una sola persona del COE no puede digitalizar todos
+los planes, manuales y protocolos de gestión de emergencias de un país. Esta
+fase permite que **cualquier persona** proponga documentos, pero **solo el
+COE decide** cuáles entran a la base de conocimiento del asistente — y deja
+público, de forma transparente, en qué se basa.
+
+```text
+[enviar/] --(submit-document)--> documents (approval_status='pending')
+                                          │
+                                          │ Panel admin → "Bandeja de entrada"
+                                          ▼
+                 aprobar (approve-document)        rechazar (reject-document)
+                          │                                  │
+                          ▼                                  ▼
+        doc_chunks (indexado) +                    se borra de "documents"
+        approval_status='approved'                 (cascada: doc_chunks,
+                          │                          document_submissions)
+                          ▼                                  │
+              aparece en [biblioteca/]                       ▼
+              y se usa en "chat" (RAG)              correo "rechazado"
+                          │                          (si dejó email)
+                          ▼
+              correo "aprobado"
+              (si dejó email)
+```
+
+- **`submit-document`** (pública, sin autenticación): recibe el texto ya
+  extraído en el navegador (igual que el panel admin), un país de procedencia
+  (obligatorio) y un país al que aplica (opcional — vacío = "general, aplica
+  a todos los países"), descripción y datos de contacto opcionales. Aplica un
+  límite de 5 envíos/hora por IP (tabla `submission_rate_limits`) para evitar
+  abuso. Guarda el documento con `approval_status='pending'` y, si hay
+  nombre/correo, una fila en `document_submissions` — tabla separada de
+  `documents` para no exponer datos de contacto en la biblioteca pública.
+
+- **Bandeja de entrada** (panel admin, pestaña nueva): lista los documentos
+  con `approval_status='pending'`, con vista previa del texto extraído y los
+  datos de quien lo envió (si los dio).
+
+- **`approve-document`** (requiere sesión admin): indexa el documento (mismo
+  pipeline de chunking + embeddings que `ingest-document`, factorizado en
+  `_shared/index-document.ts`), lo marca `approval_status='approved'` y envía
+  un correo de confirmación a quien lo envió (si dejó correo).
+
+- **`reject-document`** (requiere sesión admin): elimina el documento por
+  completo (cascada a `doc_chunks` y `document_submissions`) y envía un
+  correo de rechazo, con motivo opcional, a quien lo envió.
+
+- **RLS de transparencia**: una política nueva permite **lectura pública** de
+  `documents` cuando `approval_status='approved'`. Esto alimenta la página
+  [biblioteca/](../biblioteca/index.html) directamente vía PostgREST, sin
+  necesitar ninguna Edge Function adicional.
+
+- **Clasificación por país**: `country_origin` (de dónde viene el documento) y
+  `country_applicable` (a qué país aplica; `NULL` = general). `match_doc_chunks`
+  exige `approval_status='approved'` y, si se pasa un `country_filter`, incluye
+  los fragmentos de documentos de ese país **más** los documentos generales
+  (`country_applicable IS NULL`).
+
+- **Recomendaciones por país** (`chat` con `mode='recommendations'`): en vez
+  de responder una pregunta puntual, busca ~12 fragmentos relevantes (usando
+  una consulta fija sobre "riesgos, vacíos y oportunidades de mejora", o el
+  tema que indique la persona) y le pide a Groq un rol de "analista de
+  riesgos" que proponga 3-6 mejoras concretas y priorizadas, citando el
+  documento del que sale cada una y señalando vacíos de información si los
+  fragmentos no alcanzan.
+
+- **Notificaciones por correo (Brevo)**: `_shared/email.ts` envía los correos
+  de aprobado/rechazado vía la API de Brevo (`BREVO_API_KEY`,
+  `NOTIFICATIONS_FROM_EMAIL`). Si esas variables no están configuradas, la
+  función simplemente no envía nada — el flujo de aprobación/rechazo sigue
+  funcionando igual.
+
+- **`sites.country`**: cada sitio puede tener un país por defecto, que el
+  panel admin incluye como `data-country` en el snippet del widget — así el
+  widget de cada sitio queda enfocado en su país sin que cada visitante tenga
+  que indicarlo.
 
 ## Resumen de costos (free tier, 2026)
 
@@ -198,10 +285,11 @@ Usa Supabase Auth para que solo personal autorizado del COE pueda:
 |---|---|---|
 | Supabase | 500 MB DB, 2 proyectos, Edge Functions incluidas | Muy por debajo si los documentos son manuales/PDF típicos |
 | Groq | ~30 solicitudes/min (Llama 3.3 70B) | Cron de clima: 1 cada 15 min. Chat: depende del uso del widget, limitado por `rate_limit_counters` |
-| Google AI Studio (Gemini) | Cuota diaria de embeddings | Solo se usa al subir documentos y al hacer preguntas (1 embedding por pregunta) |
+| Google AI Studio (Gemini) | Cuota diaria de embeddings | Solo se usa al subir/aprobar documentos y al hacer preguntas (1 embedding por pregunta) |
 | GitHub Actions | Ilimitado en repos públicos | 1 ejecución corta cada 15 min |
-| Cloudflare Pages | Hosting estático ilimitado | Widget + panel admin son archivos estáticos |
+| Cloudflare Pages | Hosting estático ilimitado | Widget + panel admin + páginas públicas son archivos estáticos |
 | Open-Meteo | Gratis, sin key | 1 llamada multi-modelo cada 15 min por ubicación |
+| Brevo | 300 correos/día gratis | 1 correo por aprobación/rechazo de documento enviado con email de contacto |
 
 ## Próximos pasos (Fase 2)
 

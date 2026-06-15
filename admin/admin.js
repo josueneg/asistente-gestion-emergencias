@@ -1,24 +1,15 @@
 // ============================================================
 // Panel de administración - Asistente de Gestión de Emergencias
 // ============================================================
-// Permite: subir documentos (PDF/Word/Excel/texto), configurar
-// las ubicaciones y umbrales de clima, ver el historial de
-// alertas, y generar el <script> de embed para cada sitio.
-//
-// Librerías cargadas desde CDN (sin necesidad de "npm install"):
-//  - @supabase/supabase-js: cliente de Supabase
-//  - mammoth: extraer texto de .docx
-//  - xlsx (SheetJS): extraer texto de .xlsx / .xls
-//  - pdfjs-dist: extraer texto de .pdf
+// Permite: subir documentos (PDF/Word/Excel/texto), revisar la
+// bandeja de documentos enviados por el público, configurar las
+// ubicaciones y umbrales de clima, ver el historial de alertas, y
+// generar el <script> de embed para cada sitio.
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as mammoth from "https://esm.sh/mammoth@1.8.0";
-import * as XLSX from "https://esm.sh/xlsx@0.18.5";
-import * as pdfjsLib from "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.mjs";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
+import { extractText } from "../shared/extract.js";
+import { fillCountrySelect } from "../shared/countries.js";
 
 const LS_URL = "coeAdmin.supabaseUrl";
 const LS_ANON = "coeAdmin.supabaseAnonKey";
@@ -44,11 +35,31 @@ const changeConfigLink = document.getElementById("change-config-link");
 const fileInput = document.getElementById("file-input");
 const uploadStatus = document.getElementById("upload-status");
 const textForm = document.getElementById("text-form");
+const docCountryOrigin = document.getElementById("doc-country-origin");
+const docCountryApplicable = document.getElementById("doc-country-applicable");
+const docDescription = document.getElementById("doc-description");
+
+const inboxList = document.getElementById("inbox-list");
+const inboxStatus = document.getElementById("inbox-status");
 
 const weatherForm = document.getElementById("weather-form");
 const siteForm = document.getElementById("site-form");
+const sCountry = document.getElementById("s-country");
 const widgetUrlForm = document.getElementById("widget-url-form");
 const widgetUrlInput = document.getElementById("widget-url-input");
+
+fillCountrySelect(docCountryOrigin, {
+  includeGeneral: true,
+  generalLabel: "No especificado",
+});
+fillCountrySelect(docCountryApplicable, {
+  includeGeneral: true,
+  generalLabel: "General / aplica a todos los países",
+});
+fillCountrySelect(sCountry, {
+  includeGeneral: true,
+  generalLabel: "Sin país específico",
+});
 
 // ----------------------------------------------------------
 // Utilidades
@@ -75,61 +86,32 @@ function formatDate(iso) {
 }
 
 // ----------------------------------------------------------
-// Extracción de texto en el navegador
+// Llamadas a Edge Functions que requieren sesión (personal del COE)
 // ----------------------------------------------------------
-async function extractText(file) {
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".pdf")) return extractPdf(file);
-  if (name.endsWith(".docx")) return extractDocx(file);
-  if (name.endsWith(".xlsx") || name.endsWith(".xls")) return extractXlsx(file);
-  throw new Error("Formato no soportado. Usa PDF, DOCX o XLSX.");
-}
-
-async function extractPdf(file) {
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  let text = "";
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map((it) => it.str).join(" ") + "\n\n";
-  }
-  return text;
-}
-
-async function extractDocx(file) {
-  const buf = await file.arrayBuffer();
-  const result = await mammoth.extractRawText({ arrayBuffer: buf });
-  return result.value;
-}
-
-async function extractXlsx(file) {
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(new Uint8Array(buf), { type: "array" });
-  let text = "";
-  wb.SheetNames.forEach((name) => {
-    const sheet = wb.Sheets[name];
-    text += `Hoja: ${name}\n${XLSX.utils.sheet_to_csv(sheet)}\n\n`;
-  });
-  return text;
-}
-
-// ----------------------------------------------------------
-// Llamada a la Edge Function "ingest-document"
-// ----------------------------------------------------------
-async function ingestDocument(filename, mimeType, text) {
+async function callFunction(name, body) {
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
-  const res = await fetch(`${supabaseUrl}/functions/v1/ingest-document`, {
+  const res = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       apikey: supabaseAnonKey,
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ filename, mime_type: mimeType, text }),
+    body: JSON.stringify(body),
   });
   return res.json();
+}
+
+async function ingestDocument(filename, mimeType, text) {
+  return callFunction("ingest-document", {
+    filename,
+    mime_type: mimeType,
+    text,
+    country_origin: docCountryOrigin.value || undefined,
+    country_applicable: docCountryApplicable.value || undefined,
+    description: docDescription.value.trim() || undefined,
+  });
 }
 
 // ----------------------------------------------------------
@@ -158,6 +140,7 @@ function showApp() {
   widgetUrlInput.value = localStorage.getItem(LS_WIDGET_URL) || "";
 
   loadDocuments();
+  loadInbox();
   loadWeatherConfig();
   loadAlerts();
   loadSites();
@@ -237,10 +220,15 @@ async function loadDocuments() {
   (data ?? []).forEach((row) => {
     const badgeClass =
       row.status === "indexed" ? "badge-indexed" : row.status === "error" ? "badge-error" : "badge-pending";
+    const approvalClass = row.approval_status === "approved" ? "badge-indexed" : "badge-pending";
+    const approvalLabel = row.approval_status === "approved" ? "aprobado" : "pendiente";
+    const country = `${row.country_origin || "—"} → ${row.country_applicable || "General"}`;
     const tr = document.createElement("tr");
     tr.dataset.id = row.id;
     tr.innerHTML = `
       <td>${escapeHtml(row.filename)}</td>
+      <td>${escapeHtml(country)}</td>
+      <td><span class="badge ${approvalClass}">${approvalLabel}</span></td>
       <td>
         <span class="badge ${badgeClass}">${escapeHtml(row.status)}</span>
         ${row.error_message ? `<br><small>${escapeHtml(row.error_message)}</small>` : ""}
@@ -251,6 +239,110 @@ async function loadDocuments() {
     tbody.appendChild(tr);
   });
 }
+
+// ----------------------------------------------------------
+// Bandeja de entrada (documentos enviados por el público)
+// ----------------------------------------------------------
+async function loadInbox() {
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*, document_submissions(submitter_name, submitter_email)")
+    .eq("approval_status", "pending")
+    .order("uploaded_at", { ascending: true });
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  inboxList.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    inboxStatus.textContent = "No hay documentos pendientes de revisión.";
+    return;
+  }
+  inboxStatus.textContent = `${data.length} documento(s) pendiente(s) de revisión.`;
+
+  data.forEach((row) => {
+    const submission = (row.document_submissions || [])[0];
+    const country = `${row.country_origin || "—"} → ${row.country_applicable || "General"}`;
+    const preview = (row.raw_text || "").slice(0, 600);
+    const truncated = (row.raw_text || "").length > 600;
+
+    const item = document.createElement("div");
+    item.className = "card inbox-item";
+    item.dataset.id = row.id;
+    item.innerHTML = `
+      <h3>${escapeHtml(row.filename)}</h3>
+      <div class="doc-meta">
+        <span class="badge">${escapeHtml(country)}</span>
+        <span>Recibido: ${formatDate(row.uploaded_at)}</span>
+      </div>
+      ${row.description ? `<p>${escapeHtml(row.description)}</p>` : ""}
+      ${
+        submission
+          ? `<p class="hint">Enviado por: ${escapeHtml(submission.submitter_name || "Anónimo")}${
+              submission.submitter_email ? ` — ${escapeHtml(submission.submitter_email)}` : ""
+            }</p>`
+          : `<p class="hint">Enviado de forma anónima (sin datos de contacto).</p>`
+      }
+      <details>
+        <summary>Vista previa del texto extraído</summary>
+        <pre>${escapeHtml(preview)}${truncated ? "…" : ""}</pre>
+      </details>
+      <div class="row-actions">
+        <button data-action="approve">✅ Aprobar</button>
+        <button data-action="reject" class="secondary">❌ Rechazar</button>
+      </div>
+      <p class="item-status hint"></p>
+    `;
+    inboxList.appendChild(item);
+  });
+}
+
+inboxList.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const item = btn.closest(".inbox-item");
+  const id = item.dataset.id;
+  const statusP = item.querySelector(".item-status");
+  const buttons = item.querySelectorAll("button");
+
+  if (btn.dataset.action === "approve") {
+    buttons.forEach((b) => (b.disabled = true));
+    statusP.textContent = "Aprobando e indexando...";
+    const result = await callFunction("approve-document", { document_id: id });
+    if (result.error) {
+      statusP.textContent = "Error: " + result.error;
+      buttons.forEach((b) => (b.disabled = false));
+      return;
+    }
+    statusP.textContent = `Aprobado (${result.chunks} fragmentos indexados).`;
+    loadInbox();
+    loadDocuments();
+  }
+
+  if (btn.dataset.action === "reject") {
+    const reason = prompt(
+      "Motivo del rechazo (opcional, se incluirá en el correo a quien lo envió). Cancela para no rechazar.",
+    );
+    if (reason === null) return;
+    if (!confirm("¿Rechazar y eliminar este documento por completo?")) return;
+
+    buttons.forEach((b) => (b.disabled = true));
+    statusP.textContent = "Rechazando y eliminando...";
+    const result = await callFunction("reject-document", {
+      document_id: id,
+      reason: reason.trim() || undefined,
+    });
+    if (result.error) {
+      statusP.textContent = "Error: " + result.error;
+      buttons.forEach((b) => (b.disabled = false));
+      return;
+    }
+    loadInbox();
+    loadDocuments();
+  }
+});
 
 document.querySelector("#documents-table tbody").addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-action='delete']");
@@ -407,16 +499,20 @@ async function loadAlerts() {
 // ----------------------------------------------------------
 // Sitios / embed
 // ----------------------------------------------------------
-function buildSnippet(siteKey) {
+function buildSnippet(siteKey, country) {
   const widgetUrl = localStorage.getItem(LS_WIDGET_URL) || "https://TU-PROYECTO.pages.dev/widget.js";
-  return [
+  const lines = [
     "<script",
     `  src="${widgetUrl}"`,
     `  data-supabase-url="${supabaseUrl}"`,
     `  data-supabase-anon-key="${supabaseAnonKey}"`,
     `  data-site-key="${siteKey}"`,
-    "></script>",
-  ].join("\n");
+  ];
+  if (country) {
+    lines.push(`  data-country="${country}"`);
+  }
+  lines.push("></script>");
+  return lines.join("\n");
 }
 
 async function loadSites() {
@@ -432,7 +528,8 @@ async function loadSites() {
     tr.innerHTML = `
       <td>${escapeHtml(row.name)}</td>
       <td>${escapeHtml(row.allowed_origin)}</td>
-      <td><div class="snippet-box">${escapeHtml(buildSnippet(row.site_key))}</div></td>
+      <td>${escapeHtml(row.country || "—")}</td>
+      <td><div class="snippet-box">${escapeHtml(buildSnippet(row.site_key, row.country))}</div></td>
     `;
     tbody.appendChild(tr);
   });
@@ -442,13 +539,15 @@ siteForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("s-name").value.trim();
   const allowed_origin = document.getElementById("s-origin").value.trim() || "*";
-  const { error } = await supabase.from("sites").insert({ name, allowed_origin });
+  const country = sCountry.value || null;
+  const { error } = await supabase.from("sites").insert({ name, allowed_origin, country });
   if (error) {
     alert("Error: " + error.message);
     return;
   }
   siteForm.reset();
   document.getElementById("s-origin").value = "*";
+  fillCountrySelect(sCountry, { includeGeneral: true, generalLabel: "Sin país específico" });
   loadSites();
 });
 

@@ -54,6 +54,7 @@
     <section id="app-section" class="hidden">
       <nav id="tabs">
         <button data-tab="documentos" class="tab active">Documentos</button>
+        <button data-tab="bandeja" class="tab">Bandeja de entrada</button>
         <button data-tab="clima" class="tab">Clima</button>
         <button data-tab="alertas" class="tab">Alertas</button>
         <button data-tab="sitios" class="tab">Sitios / Embed</button>
@@ -61,6 +62,25 @@
 
       <!-- Documentos -->
       <div id="tab-documentos" class="tab-panel active">
+        <div class="card">
+          <h2>Clasificación (aplica a la próxima subida)</h2>
+          <p class="hint">
+            Indica de qué país es el documento y a qué país aplica. Si dejas "País al que aplica"
+            como general, el documento se usará para todos los países.
+          </p>
+          <div class="fields">
+            <label>País de procedencia
+              <select id="doc-country-origin"></select>
+            </label>
+            <label>País al que aplica
+              <select id="doc-country-applicable"></select>
+            </label>
+            <label>Descripción breve (opcional)
+              <textarea id="doc-description" rows="2" placeholder="Ej: Plan nacional de respuesta a inundaciones, edición 2024"></textarea>
+            </label>
+          </div>
+        </div>
+
         <div class="card">
           <h2>Subir documento (PDF, Word o Excel)</h2>
           <p>El archivo se procesa en tu navegador; solo se envía el texto extraído al servidor.</p>
@@ -89,10 +109,26 @@
           <h2>Documentos indexados</h2>
           <table id="documents-table">
             <thead>
-              <tr><th>Archivo</th><th>Estado</th><th>Fecha</th><th></th></tr>
+              <tr><th>Archivo</th><th>País</th><th>Aprobación</th><th>Estado</th><th>Fecha</th><th></th></tr>
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Bandeja de entrada -->
+      <div id="tab-bandeja" class="tab-panel">
+        <div class="card">
+          <h2>Documentos pendientes de revisión</h2>
+          <p>
+            Documentos enviados por el público desde la página
+            <a href="../enviar/index.html" target="_blank">Enviar un documento</a>. Apruébalos para
+            que el asistente los use al responder y generar recomendaciones, o recházalos para
+            eliminarlos por completo. En ambos casos, si quien lo envió dejó su correo, recibirá
+            una notificación automática.
+          </p>
+          <p id="inbox-status" class="hint"></p>
+          <div id="inbox-list"></div>
         </div>
       </div>
 
@@ -164,7 +200,7 @@
           <h2>Sitios autorizados</h2>
           <p>Cada sitio donde insertes el widget debe tener su propia clave (<code>site_key</code>).</p>
           <table id="sites-table">
-            <thead><tr><th>Nombre</th><th>Origen permitido</th><th>Snippet</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Origen permitido</th><th>País</th><th>Snippet</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -177,6 +213,13 @@
               Origen permitido (opcional)
               <input type="text" id="s-origin" placeholder="https://misitio.gob.pa o * para cualquiera" value="*" />
             </label>
+            <label>País del sitio (opcional)
+              <select id="s-country"></select>
+            </label>
+            <p class="hint">
+              El país define qué documentos prioriza el asistente y las recomendaciones para este
+              sitio.
+            </p>
             <button type="submit">Crear</button>
           </form>
         </div>

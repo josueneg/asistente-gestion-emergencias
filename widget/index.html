@@ -30,20 +30,34 @@
   data-supabase-url="https://TU-PROYECTO.supabase.co"
   data-supabase-anon-key="TU_ANON_KEY"
   data-site-key="TU_SITE_KEY"
+  data-country="Panamá"
 &gt;&lt;/script&gt;</code></pre>
       <p>
         El <a href="../admin/index.html">panel de administración</a> genera este fragmento
         automáticamente con tus credenciales y el <code>site_key</code> que crees para ese sitio.
+        <code>data-country</code> es opcional: si lo indicas, el chat y las recomendaciones se
+        enfocan en los documentos de la <a href="../biblioteca/index.html">biblioteca</a>
+        aplicables a ese país (además de los documentos generales).
       </p>
     </section>
 
     <section>
       <h2>Qué hace el botón flotante</h2>
       <ul>
-        <li><strong>Chat:</strong> responde preguntas basándose en los documentos del COE que subas.</li>
+        <li><strong>Chat:</strong> responde preguntas basándose en los documentos aprobados de la biblioteca.</li>
+        <li><strong>💡 Ideas de mejora:</strong> genera recomendaciones priorizadas para el país configurado, a partir de esos documentos.</li>
+        <li><strong>📚 Biblioteca:</strong> abre la lista pública de documentos que el asistente está usando.</li>
         <li><strong>Alertas de clima:</strong> aparecen automáticamente como tarjetas y avisos (toast).</li>
         <li><strong>🔊 Voz:</strong> activa o desactiva que las alertas se lean en voz alta.</li>
         <li><strong>🔔 Notificaciones:</strong> pide permiso para mostrar notificaciones del sistema.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Otras páginas públicas</h2>
+      <ul>
+        <li><a href="../enviar/index.html">Enviar un documento</a> para que el equipo del COE lo revise.</li>
+        <li><a href="../biblioteca/index.html">Ver la biblioteca</a> de documentos ya aprobados.</li>
       </ul>
     </section>
   </main>
@@ -58,6 +72,7 @@
     data-supabase-anon-key="sb_publishable_UhzhuMAd7l9wV2vwOiK0sg_LkM0OAje"
     data-site-key="0669c4ff33c2b16983664f97db0123c7"
     data-title="Asistente de Gestión de Emergencias (demo)"
+    data-country="Panamá"
   ></script>
 </body>
 </html>

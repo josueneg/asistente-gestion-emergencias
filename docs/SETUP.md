@@ -109,10 +109,11 @@ supabase link --project-ref TU_PROJECT_REF
 supabase db push
 ```
 
-Esto aplica `supabase/migrations/0001_init.sql`. Verifica en
-**Table Editor** (en el panel de Supabase) que aparezcan las tablas:
+Esto aplica `supabase/migrations/0001_init.sql` y `0002_document_review.sql`.
+Verifica en **Table Editor** (en el panel de Supabase) que aparezcan las tablas:
 `documents`, `doc_chunks`, `alerts`, `weather_config`, `sites`,
-`rate_limit_counters`, `chat_logs`.
+`rate_limit_counters`, `chat_logs`, `document_submissions`,
+`submission_rate_limits`.
 
 ### 4.6 Configurar las claves secretas de las funciones
 
@@ -135,6 +136,9 @@ supabase secrets set WEATHER_CRON_SECRET=tu_frase_secreta_unica
 supabase functions deploy ingest-document
 supabase functions deploy chat
 supabase functions deploy weather-alert
+supabase functions deploy submit-document
+supabase functions deploy approve-document
+supabase functions deploy reject-document
 ```
 
 ### 4.8 Crear tu usuario de administrador
@@ -142,6 +146,33 @@ supabase functions deploy weather-alert
 1. En el panel de Supabase, ve a **Authentication → Users → Add user**.
 2. Crea un usuario con tu correo y una contraseña (marca "Auto Confirm User").
 3. Repite para cada persona del COE que vaya a usar el panel de administración.
+
+### 4.9 Configurar notificaciones por correo (Brevo) — opcional
+
+Cuando alguien envía un documento desde la página pública **Enviar un
+documento** y deja su correo, el sistema le avisa por email cuando el
+documento es aprobado o rechazado. Esto es **opcional**: si no configuras
+esto, todo el resto del sistema funciona igual, simplemente no se envían esos
+correos.
+
+1. Crea una cuenta gratuita en [brevo.com](https://www.brevo.com) (plan
+   gratuito: 300 correos/día, sin tarjeta de crédito).
+2. Ve a **Senders, Domains & Dedicated IPs → Senders** y agrega tu correo
+   (por ejemplo, el mismo que usas para administrar el sistema). Brevo te
+   envía un correo de verificación: ábrelo y haz clic en el enlace para
+   confirmar el remitente.
+3. Ve a **SMTP & API → API Keys → Generate a new API key**. Copia la clave
+   generada.
+4. En la Terminal, configura los secrets (reemplaza con tu clave y el correo
+   que verificaste):
+
+   ```bash
+   supabase secrets set BREVO_API_KEY=tu_api_key_de_brevo
+   supabase secrets set NOTIFICATIONS_FROM_EMAIL=tu_correo_verificado@ejemplo.com
+   ```
+
+5. No es necesario volver a desplegar las funciones: los secrets se aplican
+   de inmediato a las funciones ya desplegadas.
 
 ---
 
@@ -183,6 +214,11 @@ Con esta configuración, tus páginas quedan disponibles en:
 - Widget: `https://asistente-gestion-emergencias.pages.dev/widget/widget.js`
 - Demo del widget: `https://asistente-gestion-emergencias.pages.dev/widget/`
 - Panel admin: `https://asistente-gestion-emergencias.pages.dev/admin/`
+- Enviar un documento (público): `https://asistente-gestion-emergencias.pages.dev/enviar/`
+- Biblioteca de documentos (público): `https://asistente-gestion-emergencias.pages.dev/biblioteca/`
+
+Estas dos últimas son páginas estáticas más: no necesitan configuración
+adicional, se publican solas junto con el resto del sitio.
 
 ---
 
@@ -196,9 +232,17 @@ Con esta configuración, tus páginas quedan disponibles en:
      `https://TU-PROYECTO.pages.dev/widget/widget.js` y guarda.
    - En "Crear nuevo sitio" escribe un nombre (ej. "Sitio de pruebas") y crea.
    - Copia el `<script>` generado.
-5. Ve a la pestaña **Documentos** y sube un PDF/Word/Excel de prueba (un manual
-   o plan de emergencia corto). Espera a que el estado cambie a `indexed`.
-6. Ve a la pestaña **Clima** y revisa/ajusta la ubicación y los umbrales
+5. Ve a la pestaña **Documentos**, elige opcionalmente el país de procedencia,
+   el país al que aplica (o "General" si aplica a todos) y una descripción
+   breve, y sube un PDF/Word/Excel de prueba (un manual o plan de emergencia
+   corto). Espera a que el estado cambie a `indexed`. Las subidas hechas
+   desde el panel admin quedan **aprobadas automáticamente**.
+6. Ve a la pestaña **Bandeja de entrada**: aquí aparecerán los documentos que
+   cualquier persona envíe desde la página pública **Enviar un documento**
+   (`enviar/`), pendientes de tu revisión. Puedes ver una vista previa del
+   texto extraído y los datos de quien lo envió, y **aprobar** o **rechazar**
+   cada uno.
+7. Ve a la pestaña **Clima** y revisa/ajusta la ubicación y los umbrales
    (ya viene una fila para Ciudad de Panamá).
 
 ---
@@ -214,8 +258,14 @@ en cualquier página HTML de cualquier sitio web:
   data-supabase-url="https://TU-PROYECTO.supabase.co"
   data-supabase-anon-key="TU_ANON_KEY"
   data-site-key="TU_SITE_KEY"
+  data-country="Panamá"
 ></script>
 ```
+
+`data-country` es opcional: si lo indicas (o si elegiste un país por defecto
+al crear el sitio en el paso 7), el chat y el botón "💡 Ideas de mejora" se
+enfocan en los documentos de la biblioteca aplicables a ese país, además de
+los documentos generales.
 
 Recarga la página: debe aparecer un botón flotante 🆘 en la esquina inferior derecha.
 
@@ -232,6 +282,18 @@ Recarga la página: debe aparecer un botón flotante 🆘 en la esquina inferior
       Después, vuelve a subir el umbral a un valor realista (ej. 10).
 - [ ] Abres `widget/index.html` desde otro origen (otro puerto o archivo)
       y el widget funciona igual (confirma que no hay problemas de CORS).
+- [ ] Abres la página **Enviar un documento** (`enviar/`), envías un
+      documento de prueba indicando un país, y en el panel admin aparece en
+      la pestaña **Bandeja de entrada**.
+- [ ] Desde la **Bandeja de entrada**, **apruebas** ese documento: el estado
+      cambia a `indexed`/aprobado y el documento aparece en la página
+      **Biblioteca** (`biblioteca/`).
+- [ ] En el widget, con `data-country` igual al país del documento, haces una
+      pregunta relacionada y la respuesta cita ese documento como fuente.
+      Pruebas también el botón **💡 Ideas de mejora**.
+- [ ] Envías un segundo documento de prueba y lo **rechazas** desde la
+      Bandeja de entrada: confirma que desaparece de la Bandeja y no aparece
+      en la Biblioteca.
 
 ---
 
@@ -253,3 +315,8 @@ Recarga la página: debe aparecer un botón flotante 🆘 en la esquina inferior
   pausan tras 7 días sin actividad. El cron de clima escribe en la base cada
   15 minutos y evita esto; si ocurre igual, entra al dashboard y pulsa
   "Restore project".
+- **No llegan los correos de aprobación/rechazo**: revisa que configuraste
+  `BREVO_API_KEY` y `NOTIFICATIONS_FROM_EMAIL` (paso 4.9) y que verificaste el
+  remitente en Brevo. Sin esto, el sistema sigue funcionando con normalidad,
+  simplemente no envía esos correos. También revisa la carpeta de spam de
+  quien envió el documento.

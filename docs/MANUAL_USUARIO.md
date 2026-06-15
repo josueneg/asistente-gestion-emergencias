@@ -46,7 +46,27 @@ cualquier página donde se haya insertado.
 > responderá con buenas prácticas generales y lo indicará — siempre conviene
 > verificar contra el procedimiento oficial.
 
-### 2.2 Alertas de clima
+### 2.2 Pedir ideas de mejora (💡) y ver la biblioteca (📚)
+
+En la parte superior del panel del asistente, debajo del título, hay una
+barra con dos botones:
+
+- **💡 Ideas de mejora**: en vez de responder una pregunta puntual, el
+  asistente analiza los documentos aprobados (priorizando los del país
+  configurado para ese sitio, si lo hay) y propone una lista de 3 a 6 mejoras
+  concretas y priorizadas — por ejemplo, vacíos en los protocolos, riesgos no
+  cubiertos o acciones recomendadas — citando de qué documento sale cada una.
+  Esta respuesta aparece resaltada con un borde amarillo para diferenciarla
+  de las respuestas normales del chat.
+- **📚 Biblioteca**: abre en una pestaña nueva la página pública de
+  Biblioteca, donde se puede ver el listado completo de documentos que el
+  asistente está usando actualmente para responder y dar recomendaciones (ver
+  sección 3.2).
+
+> Estos dos botones usan la misma información que el chat: solo se basan en
+> documentos que ya fueron revisados y aprobados (sección 4.3).
+
+### 2.3 Alertas de clima
 
 Cuando el sistema genera una alerta nueva, automáticamente:
 
@@ -62,7 +82,7 @@ Cuando el sistema genera una alerta nueva, automáticamente:
 El historial de alertas recientes también aparece dentro del panel del
 asistente, debajo del chat.
 
-### 2.3 Activar/desactivar sonido y notificaciones
+### 2.4 Activar/desactivar sonido y notificaciones
 
 En la parte superior del panel del asistente hay dos botones:
 
@@ -76,14 +96,63 @@ las configura una sola vez por dispositivo.
 
 ---
 
-## 3. Panel de administración
+## 3. Páginas públicas: enviar un documento y ver la biblioteca
+
+Además del chat, el sistema tiene dos páginas web públicas — no requieren
+cuenta ni iniciar sesión — donde **cualquier persona** puede colaborar con la
+base de conocimiento del asistente y ver en qué se basa.
+
+### 3.1 Enviar un documento
+
+En la página **Enviar un documento** (enlace desde la página principal o
+desde el botón 📚 del widget), cualquier persona puede proponer un manual,
+plan, protocolo o guía de gestión de emergencias:
+
+1. Selecciona el archivo (PDF, Word o Excel). El navegador extrae el texto
+   automáticamente.
+2. Indica el **país de procedencia** del documento (obligatorio).
+3. Indica el **país al que aplica** (opcional) — si el documento sirve para
+   varios países o no es específico de uno, se deja en "General / aplica a
+   todos los países".
+4. Escribe una breve descripción de qué es el documento.
+5. Opcionalmente, indica un nombre y un correo de contacto, para recibir un
+   aviso por email cuando el documento sea revisado.
+6. Haz clic en enviar.
+
+El documento queda **pendiente de revisión** — todavía no es usado por el
+asistente. El equipo del COE lo revisará en algún momento (puede ser minutos,
+días o semanas) y decidirá si lo aprueba o lo rechaza (sección 4.3). Si se
+dejó un correo, se envía un aviso automático cuando eso ocurre.
+
+> Para evitar abuso, el sistema limita la cantidad de documentos que se
+> pueden enviar desde la misma conexión a internet en una hora.
+
+### 3.2 Biblioteca
+
+En la página **Biblioteca**, cualquier persona puede ver el listado completo
+de documentos que el asistente **ya tiene aprobados** y está usando para
+responder preguntas y generar recomendaciones. Por cada documento se muestra:
+
+- Nombre del archivo y descripción.
+- País de procedencia.
+- País al que aplica (o "General" si aplica a todos).
+- Fecha en que fue aprobado.
+
+Se puede filtrar por país usando el selector en la parte superior. Esta
+página es la forma de mostrar **transparencia**: cualquiera puede verificar
+en qué información se basa el asistente, sin necesidad de acceder al panel de
+administración.
+
+---
+
+## 4. Panel de administración
 
 El panel de administración es para el personal encargado de mantener
 actualizados los documentos y la configuración de clima. Requiere una cuenta
 (correo y contraseña) creada previamente por quien instaló el sistema (ver
 [SETUP.md](SETUP.md), sección 4.8).
 
-### 3.1 Acceder
+### 4.1 Acceder
 
 1. Abre la URL del panel admin (ej. `https://tu-proyecto.pages.dev/admin/`).
 2. La primera vez, ingresa la **URL de Supabase** y la **clave anon** (te las
@@ -91,10 +160,27 @@ actualizados los documentos y la configuración de clima. Requiere una cuenta
    navegador.
 3. Inicia sesión con tu correo y contraseña.
 
-### 3.2 Pestaña "Documentos"
+### 4.2 Pestaña "Documentos"
 
 Aquí se cargan los manuales, planes de emergencia y demás documentos que el
 asistente usará para responder.
+
+**Clasificación (aplica a la próxima subida)**:
+
+Antes de subir un archivo o agregar texto, puedes elegir en la tarjeta
+"Clasificación":
+
+- **País de procedencia**: de dónde viene el documento.
+- **País al que aplica**: a qué país aplican sus recomendaciones (déjalo en
+  "No especificado" / "General" si aplica a todos los países).
+- **Descripción**: una frase breve sobre el contenido del documento.
+
+Estos datos quedan asociados al documento y son los que se muestran en la
+**Biblioteca** pública (sección 3.2).
+
+> A diferencia de los documentos enviados por el público desde
+> **Enviar un documento**, los que subes aquí quedan **aprobados
+> automáticamente** — no pasan por la Bandeja de entrada.
 
 **Subir un archivo (PDF, Word o Excel)**:
 
@@ -129,7 +215,46 @@ asistente dejará de usar esa información.
 > anterior, para que el asistente no mezcle información desactualizada con la
 > vigente.
 
-### 3.3 Pestaña "Clima"
+En la tabla, además del estado de indexado, aparece una columna **País**
+(país de procedencia → país al que aplica) y una columna **Aprobación**
+(aprobado/pendiente).
+
+### 4.3 Pestaña "Bandeja de entrada"
+
+Aquí aparecen los documentos que **cualquier persona** envió desde la página
+pública **Enviar un documento** (sección 3.1) y que todavía no han sido
+revisados.
+
+Por cada documento se muestra:
+
+- Nombre del archivo, país de procedencia, país al que aplica y descripción.
+- Nombre y correo de quien lo envió (si los dejó).
+- Una vista previa del texto extraído (haz clic para expandirla).
+- Dos botones: **✅ Aprobar** y **❌ Rechazar**.
+
+**Aprobar un documento**:
+
+Al hacer clic en "✅ Aprobar", el sistema procesa el documento (lo divide en
+fragmentos y genera los embeddings, igual que en la pestaña Documentos), lo
+marca como aprobado y lo agrega a la **Biblioteca** pública — a partir de ese
+momento el asistente puede usarlo para responder y dar recomendaciones. Si
+quien lo envió dejó un correo, recibe un aviso automático de que su documento
+fue aceptado.
+
+**Rechazar un documento**:
+
+Al hacer clic en "❌ Rechazar", el sistema pide confirmación y permite
+escribir un motivo opcional (por ejemplo, "documento duplicado" o "no es
+información de gestión de emergencias"). Al confirmar, el documento se
+**elimina por completo** — no queda en ningún listado. Si quien lo envió dejó
+un correo, recibe un aviso automático de que su documento no fue aceptado
+(incluyendo el motivo, si se escribió uno).
+
+> No hay un plazo fijo para revisar la Bandeja de entrada: puede ser en
+> minutos, días o semanas. Mientras un documento esté pendiente, **no** es
+> usado por el asistente ni aparece en la Biblioteca pública.
+
+### 4.4 Pestaña "Clima"
 
 Aquí se configuran las ubicaciones y los umbrales que activan una alerta de
 clima.
@@ -160,14 +285,14 @@ punto → copiar coordenadas).
 > severos. Se recomienda ajustar gradualmente según la experiencia local
 > (ej. empezar con lluvia 10 mm/h y viento 50 km/h, y afinar con el tiempo).
 
-### 3.4 Pestaña "Alertas"
+### 4.5 Pestaña "Alertas"
 
 Muestra el historial de todas las alertas generadas automáticamente (fecha,
 tipo, severidad, título y mensaje completo). Es de solo lectura — sirve para
 revisar qué avisos se han emitido y cuándo, por ejemplo para un reporte
 posterior a un evento.
 
-### 3.5 Pestaña "Sitios / Embed"
+### 4.6 Pestaña "Sitios / Embed"
 
 Aquí se gestiona en qué páginas web aparece el widget del asistente.
 
@@ -180,7 +305,11 @@ generar automáticamente el código de inserción.
 1. Escribe un nombre descriptivo (ej. "Sitio web institucional del COE").
 2. En "Origen permitido" puedes dejar `*` (cualquier sitio) o indicar un
    dominio específico si quieres restringirlo.
-3. Haz clic en "Crear". Aparecerá en la tabla con un bloque de código
+3. Opcionalmente, elige un **país** para ese sitio — el widget de ese sitio
+   enfocará el chat y las "Ideas de mejora" en los documentos aplicables a
+   ese país (además de los generales), sin que cada visitante tenga que
+   indicarlo.
+4. Haz clic en "Crear". Aparecerá en la tabla con un bloque de código
    (snippet) listo para copiar.
 
 **Insertar el widget en un sitio**:
@@ -196,7 +325,7 @@ generar automáticamente el código de inserción.
 
 ---
 
-## 4. Buenas prácticas operativas
+## 5. Buenas prácticas operativas
 
 - **Mantén los documentos actualizados**: el asistente solo es tan bueno como
   la información que tiene. Revisa periódicamente que los manuales y planes
@@ -215,7 +344,7 @@ generar automáticamente el código de inserción.
 
 ---
 
-## 5. Preguntas frecuentes
+## 6. Preguntas frecuentes
 
 **¿El asistente reemplaza el plan de emergencia oficial?**
 No. Es una herramienta de consulta rápida basada en esos documentos. El plan
@@ -237,3 +366,19 @@ funciona sin conexión.
 **¿Puede monitorear redes sociales o noticias?**
 Esa función está planeada para una fase futura (ver
 [FASE2-RSS.md](FASE2-RSS.md)) y todavía no está activa.
+
+**¿Cuánto tarda en revisarse un documento que envié?**
+No hay un plazo fijo — depende de cuándo el equipo del COE revise la Bandeja
+de entrada (puede ser minutos, días o semanas). Si dejaste un correo al
+enviarlo, recibirás un aviso automático apenas sea aprobado o rechazado.
+
+**¿Por qué no me llegó el correo de aprobación/rechazo?**
+Revisa la carpeta de spam. También es posible que el sistema todavía no tenga
+configurado el envío de correos (esto depende de quien administra el
+sistema) — en ese caso, el documento se revisa igual, simplemente no se
+envía el aviso por email.
+
+**¿Qué pasa con un documento que es rechazado?**
+Se elimina por completo del sistema. Si quieres que se reconsidere, puedes
+volver a enviarlo desde **Enviar un documento**, idealmente con una
+descripción más clara de por qué es relevante para la gestión de emergencias.

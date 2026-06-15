@@ -7,14 +7,20 @@
  *     data-supabase-url="https://TU-PROYECTO.supabase.co"
  *     data-supabase-anon-key="TU_ANON_KEY"
  *     data-site-key="TU_SITE_KEY"
+ *     data-country="Panamá"
  *   ></script>
+ *
+ * "data-country" es opcional: si se indica, el chat y las
+ * recomendaciones se enfocan en los documentos aplicables a ese país
+ * (además de los documentos "generales", sin país específico).
  *
  * No requiere ninguna librería externa. Crea su propia interfaz
  * (botón flotante + panel de chat) dentro de un Shadow DOM para
  * no chocar con los estilos del sitio anfitrión.
  *
  * Funciones:
- *  - Chat con RAG sobre los documentos del COE (Edge Function "chat")
+ *  - Chat con RAG sobre los documentos aprobados del COE (Edge Function "chat")
+ *  - Recomendaciones de mejora por país a partir de la biblioteca de documentos
  *  - Alertas en tiempo real (consulta periódica a la tabla "alerts")
  *  - Notificación visual (toast + Notification API del navegador)
  *  - Notificación hablada (Web Speech API, español)
@@ -35,6 +41,7 @@
     lang: scriptEl.dataset.lang || "es-ES",
     title: scriptEl.dataset.title || "Asistente de Gestión de Emergencias",
     pollMs: parseInt(scriptEl.dataset.pollMs || "60000", 10),
+    country: scriptEl.dataset.country || "",
   };
 
   if (!config.supabaseUrl || !config.anonKey || !config.siteKey) {
@@ -113,7 +120,19 @@
     + ".coe-msg { max-width: 85%; padding: 8px 10px; border-radius: 10px; white-space: pre-wrap; }"
     + ".coe-msg-user { align-self: flex-end; background: #0b4f6c; color: #fff; border-bottom-right-radius: 2px; }"
     + ".coe-msg-bot { align-self: flex-start; background: #fff; color: #222; border: 1px solid #e0e4e8; border-bottom-left-radius: 2px; }"
+    + ".coe-msg-recommend { border-left: 4px solid #f4c542; }"
     + ".coe-msg-sources { font-size: 11px; color: #666; margin-top: 4px; }"
+    + ".coe-toolbar {"
+    + "  display: flex; gap: 6px; padding: 6px 8px; background: #fff;"
+    + "  border-bottom: 1px solid #e0e4e8;"
+    + "}"
+    + ".coe-toolbar button, .coe-toolbar a {"
+    + "  flex: 1; text-align: center; padding: 6px 4px; border-radius: 6px;"
+    + "  border: 1px solid #d6dade; background: #f4f6f8; color: #1c2b33;"
+    + "  text-decoration: none; cursor: pointer; font-size: 12px; line-height: 1.3;"
+    + "}"
+    + ".coe-toolbar button:hover, .coe-toolbar a:hover { background: #e6e9ec; }"
+    + ".coe-toolbar button:disabled { opacity: .5; cursor: default; }"
     + ".coe-alert {"
     + "  border-radius: 10px; padding: 8px 10px; font-size: 13px; border-left: 4px solid #999;"
     + "  background: #fff;"
@@ -171,6 +190,10 @@
     '<button class="coe-close-btn" title="Cerrar">✕</button>' +
     "</div>" +
     "</div>" +
+    '<div class="coe-toolbar">' +
+    '<button class="coe-reco-btn" title="Generar recomendaciones a partir de los documentos aprobados">💡 Ideas de mejora</button>' +
+    '<a class="coe-biblioteca-link" target="_blank" rel="noopener" title="Ver documentos en los que se basa el asistente">📚 Biblioteca</a>' +
+    "</div>" +
     '<div class="coe-feed"></div>' +
     '<div class="coe-input-row">' +
     '<textarea placeholder="Escribe tu pregunta..." rows="1"></textarea>' +
@@ -184,7 +207,19 @@
   var voiceBtn = panel.querySelector(".coe-voice-btn");
   var notifBtn = panel.querySelector(".coe-notif-btn");
   var closeBtn = panel.querySelector(".coe-close-btn");
+  var recoBtn = panel.querySelector(".coe-reco-btn");
+  var bibliotecaLink = panel.querySelector(".coe-biblioteca-link");
   var badge = fab.querySelector(".coe-badge");
+
+  (function setupBibliotecaLink() {
+    try {
+      var url = new URL("../biblioteca/index.html", scriptEl.src);
+      if (config.country) url.searchParams.set("pais", config.country);
+      bibliotecaLink.href = url.href;
+    } catch (e) {
+      bibliotecaLink.style.display = "none";
+    }
+  })();
 
   function updateVoiceBtn() {
     voiceBtn.textContent = isVoiceEnabled() ? "🔊" : "🔇";
@@ -259,9 +294,10 @@
     appendToFeed(el);
   }
 
-  function renderBotMessage(text, sources) {
+  function renderBotMessage(text, sources, isRecommendation) {
     var el = document.createElement("div");
     el.className = "coe-msg coe-msg-bot";
+    if (isRecommendation) el.classList.add("coe-msg-recommend");
     el.textContent = text;
     if (sources && sources.length) {
       var src = document.createElement("div");
@@ -432,6 +468,7 @@
         site_key: config.siteKey,
         session_id: getSessionId(),
         question: question,
+        country: config.country || undefined,
       }),
     })
       .then(function (res) {
@@ -459,6 +496,49 @@
       });
   }
 
+  function sendRecommendations() {
+    recoBtn.disabled = true;
+
+    renderUserMessage(
+      "💡 Ideas de mejora" + (config.country ? " para " + config.country : ""),
+    );
+    var thinking = renderBotMessage("Analizando los documentos aprobados...");
+
+    fetch(config.supabaseUrl + "/functions/v1/chat", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, supabaseHeaders()),
+      body: JSON.stringify({
+        site_key: config.siteKey,
+        session_id: getSessionId(),
+        mode: "recommendations",
+        country: config.country || undefined,
+      }),
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        thinking.remove();
+        if (!result.ok) {
+          renderBotMessage(
+            "Lo siento, ocurrió un problema: " + (result.data.error || "error desconocido"),
+          );
+          return;
+        }
+        renderBotMessage("💡 " + result.data.answer, result.data.sources, true);
+      })
+      .catch(function (err) {
+        thinking.remove();
+        renderBotMessage("No se pudo conectar con el asistente. Intenta de nuevo más tarde.");
+        console.error("[Asistente] Error en recomendaciones:", err);
+      })
+      .finally(function () {
+        recoBtn.disabled = false;
+      });
+  }
+
   sendBtn.addEventListener("click", sendQuestion);
   textarea.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -466,6 +546,7 @@
       sendQuestion();
     }
   });
+  recoBtn.addEventListener("click", sendRecommendations);
 
   // ----------------------------------------------------------
   // Inicio

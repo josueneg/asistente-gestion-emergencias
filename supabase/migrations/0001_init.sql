@@ -104,7 +104,7 @@ create table sites (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   allowed_origin text not null default '*',
-  site_key text not null unique default encode(gen_random_bytes(16), 'hex'),
+  site_key text not null unique default encode(extensions.gen_random_bytes(16), 'hex'),
   created_at timestamptz not null default now()
 );
 
