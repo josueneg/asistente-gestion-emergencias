@@ -92,6 +92,34 @@
             <input type="checkbox" id="toggle-goes" />
             <span>🛰 GOES-East</span>
           </label>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-firms" />
+            <span>🔥 FIRMS</span>
+          </label>
+          <hr class="legend-sep" />
+          <div class="legend-title">Volcanes CA</div>
+          <div class="legend-row"><span class="ldot ldot-vol-green"></span>Normal</div>
+          <div class="legend-row"><span class="ldot ldot-vol-yellow"></span>Alerta</div>
+          <div class="legend-row"><span class="ldot ldot-vol-orange"></span>Advertencia</div>
+          <div class="legend-row"><span class="ldot ldot-vol-red"></span>Peligro</div>
+          <hr class="legend-sep" />
+          <div class="legend-title">Fuentes externas</div>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-quakes" checked />
+            <span>🌍 Sismos USGS</span>
+          </label>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-cyclones" checked />
+            <span>🌀 Ciclones NHC</span>
+          </label>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-eonet" checked />
+            <span>📡 NASA EONET</span>
+          </label>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-volcanoes" checked />
+            <span>🌋 Volcanes</span>
+          </label>
         </div>
 
         <!-- Controles de animación radar -->
@@ -145,6 +173,7 @@
     <!-- ── Barra inferior ─────────────────────────────────────────── -->
     <footer id="bottom-bar">
       <span id="last-updated-text">—</span>
+      <span id="ext-stat" class="ext-stat-label">—</span>
       <button type="button" id="refresh-now-btn">↻ Actualizar ahora</button>
       <a href="../index.html" class="footer-link">← Inicio</a>
     </footer>

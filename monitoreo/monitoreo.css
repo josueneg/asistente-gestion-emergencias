@@ -801,9 +801,63 @@ body {
 }
 .met-btns button:hover { background: rgba(255,255,255,.28); }
 
+/* ── Leyenda: volcanes CA dots ── */
+.ldot-vol-green  { background: #16a34a; }
+.ldot-vol-yellow { background: #ca8a04; }
+.ldot-vol-orange { background: #ea580c; }
+.ldot-vol-red    { background: #dc2626; }
+
+/* ── Volcán: triángulo en el mapa ── */
+.volcano-marker {
+  width: 0; height: 0;
+  border-left:   11px solid transparent;
+  border-right:  11px solid transparent;
+  border-bottom: 20px solid #b45309;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.4));
+}
+
+/* ── Eventos externos: emoji icon ── */
+.ext-icon {
+  line-height: 1;
+  text-align: center;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.45));
+  cursor: pointer;
+}
+
+/* ── Popup: source badge ── */
+.source-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 5px;
+  vertical-align: middle;
+  letter-spacing: .5px;
+  color: #fff;
+}
+.src-coe    { background: #0f4f8c; }
+.src-usgs   { background: #7c3aed; }
+.src-nhc    { background: #0891b2; }
+.src-eonet  { background: #0369a1; }
+.src-gdacs  { background: #dc2626; }
+.src-gvp    { background: #b45309; }
+
+/* ── Footer: estadísticas fuentes externas ── */
+.ext-stat-label {
+  font-size: 11px;
+  color: var(--text-2);
+  margin: 0 auto 0 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 380px;
+}
+
 @media (max-width: 480px) {
   #top-bar { padding: 0 12px; gap: 10px; }
   .brand-text h1 { font-size: 13px; }
   #country-select { min-width: 120px; }
   #live-clock { font-size: 15px; }
+  .ext-stat-label { display: none; }
 }
