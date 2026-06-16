@@ -88,6 +88,10 @@
             <input type="checkbox" id="toggle-infrared" />
             <span>☁️ Nubes IR</span>
           </label>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-goes" />
+            <span>🛰 GOES-East</span>
+          </label>
         </div>
 
         <!-- Controles de animación radar -->
@@ -117,6 +121,23 @@
             <p class="empty-title">Sin alertas activas</p>
             <p class="empty-sub">La región está sin incidentes reportados en este momento.</p>
           </div>
+        </div>
+
+        <!-- Historial de alertas expiradas -->
+        <div id="history-section" class="hidden">
+          <button type="button" id="history-toggle-btn">
+            📋 Historial <span id="history-count-badge" class="hist-badge">0</span>
+            <span class="hist-chevron">▾</span>
+          </button>
+          <div id="history-list" class="hidden"></div>
+        </div>
+
+        <!-- Mascota / emisora de avisos -->
+        <div id="mascot-zone">
+          <div id="mascot-speech">
+            <span id="mascot-speech-text">Monitoreo activo en la región.</span>
+          </div>
+          <div id="mascot-icon" title="Asistente COE">🧑‍🚒</div>
         </div>
       </aside>
     </div>

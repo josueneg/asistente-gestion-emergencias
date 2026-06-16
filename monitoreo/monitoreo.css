@@ -563,6 +563,150 @@ body {
 }
 .footer-link:hover { color: var(--text-2); }
 
+/* ── Validity tags en tarjeta ── */
+.vt {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.vt-ok      { background: #dcfce7; color: #166534; }
+.vt-warn    { background: #fef3c7; color: #92400e; }
+.vt-urgent  { background: #fee2e2; color: #991b1b; }
+.vt-expired { background: #f1f5f9; color: #94a3b8; }
+
+/* ── Ubicación geocodificada ── */
+.alert-location {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.alert-location.hidden { display: none; }
+
+/* ── Historial de alertas ── */
+#history-section {
+  border-top: 2px dashed var(--border);
+  flex-shrink: 0;
+}
+#history-section.hidden { display: none; }
+
+#history-toggle-btn {
+  width: 100%;
+  background: #f8fafc;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  transition: background .15s;
+}
+#history-toggle-btn:hover { background: #f1f5f9; color: var(--text-1); }
+
+.hist-badge {
+  background: var(--text-3);
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.hist-chevron { margin-left: auto; font-size: 14px; color: var(--text-3); }
+
+#history-list {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+#history-list.hidden { display: none; }
+
+.alert-card-hist {
+  opacity: .75;
+  filter: saturate(.55);
+}
+.alert-card-hist:hover { opacity: .9; filter: saturate(.8); }
+
+/* ── Mascota / emisora de avisos ── */
+#mascot-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+#mascot-icon {
+  font-size: 36px;
+  line-height: 1;
+  animation: mascot-float 3s ease-in-out infinite;
+  cursor: default;
+  flex-shrink: 0;
+  filter: drop-shadow(0 3px 7px rgba(0,0,0,.18));
+}
+.mascot-alerting {
+  animation: mascot-alert 0.55s ease-in-out 4 !important;
+}
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%       { transform: translateY(-5px) rotate(2deg); }
+  66%       { transform: translateY(-3px) rotate(-1deg); }
+}
+@keyframes mascot-alert {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  20%      { transform: scale(1.25) rotate(-14deg); }
+  50%      { transform: scale(1.3)  rotate(14deg); }
+  80%      { transform: scale(1.15) rotate(-7deg); }
+}
+
+#mascot-speech {
+  flex: 1;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-1);
+  box-shadow: 0 1px 6px rgba(0,0,0,.07);
+  position: relative;
+}
+#mascot-speech::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  bottom: 8px;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 8px solid var(--border);
+}
+#mascot-speech::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  bottom: 9px;
+  width: 0; height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-right: 7px solid #fff;
+}
+
 /* ── Responsive ── */
 @media (max-width: 720px) {
   #body-layout { flex-direction: column; }
