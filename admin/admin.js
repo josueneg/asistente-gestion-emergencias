@@ -10,6 +10,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { extractText } from "../shared/extract.js";
 import { fillCountrySelect } from "../shared/countries.js";
+import { fillPhasesCheckboxes, readPhasesCheckboxes } from "../shared/phases.js";
 
 const LS_URL = "coeAdmin.supabaseUrl";
 const LS_ANON = "coeAdmin.supabaseAnonKey";
@@ -18,6 +19,7 @@ const LS_WIDGET_URL = "coeAdmin.widgetUrl";
 let supabase = null;
 let supabaseUrl = "";
 let supabaseAnonKey = "";
+let editDocId = null;
 
 // ----------------------------------------------------------
 // Referencias del DOM
@@ -37,7 +39,31 @@ const uploadStatus = document.getElementById("upload-status");
 const textForm = document.getElementById("text-form");
 const docCountryOrigin = document.getElementById("doc-country-origin");
 const docCountryApplicable = document.getElementById("doc-country-applicable");
+const docTitle = document.getElementById("doc-title");
+const docPubDate = document.getElementById("doc-pub-date");
+const docInstitutions = document.getElementById("doc-institutions");
+const docValidityStart = document.getElementById("doc-validity-start");
+const docValidityEnd = document.getElementById("doc-validity-end");
+const docPhasesContainer = document.getElementById("doc-phases");
 const docDescription = document.getElementById("doc-description");
+
+// Edit modal
+const editModal = document.getElementById("edit-modal");
+const editForm = document.getElementById("edit-form");
+const editTitle = document.getElementById("edit-title");
+const editPubDate = document.getElementById("edit-pub-date");
+const editInstitutions = document.getElementById("edit-institutions");
+const editValidityStart = document.getElementById("edit-validity-start");
+const editValidityEnd = document.getElementById("edit-validity-end");
+const editPhasesContainer = document.getElementById("edit-phases");
+const editCountryOrigin = document.getElementById("edit-country-origin");
+const editCountryApplicable = document.getElementById("edit-country-applicable");
+const editDescription = document.getElementById("edit-description");
+const editFileStatus = document.getElementById("edit-file-status");
+const editFileInput = document.getElementById("edit-file-input");
+const editFileUploadStatus = document.getElementById("edit-file-upload-status");
+const editStatus = document.getElementById("edit-status");
+const editCancelBtn = document.getElementById("edit-cancel-btn");
 
 const inboxList = document.getElementById("inbox-list");
 const inboxStatus = document.getElementById("inbox-status");
@@ -60,6 +86,16 @@ fillCountrySelect(sCountry, {
   includeGeneral: true,
   generalLabel: "Sin país específico",
 });
+fillCountrySelect(editCountryOrigin, {
+  includeGeneral: true,
+  generalLabel: "No especificado",
+});
+fillCountrySelect(editCountryApplicable, {
+  includeGeneral: true,
+  generalLabel: "General / aplica a todos los países",
+});
+fillPhasesCheckboxes(docPhasesContainer);
+fillPhasesCheckboxes(editPhasesContainer);
 
 // ----------------------------------------------------------
 // Utilidades
@@ -104,12 +140,20 @@ async function callFunction(name, body) {
 }
 
 async function ingestDocument(filename, mimeType, text) {
+  const { phases, phaseOther } = readPhasesCheckboxes(docPhasesContainer);
   return callFunction("ingest-document", {
     filename,
     mime_type: mimeType,
     text,
     country_origin: docCountryOrigin.value || undefined,
     country_applicable: docCountryApplicable.value || undefined,
+    title: docTitle.value.trim() || undefined,
+    publication_date: docPubDate.value || undefined,
+    institutions: docInstitutions.value.trim() || undefined,
+    validity_start_year: docValidityStart.value ? parseInt(docValidityStart.value, 10) : undefined,
+    validity_end_year: docValidityEnd.value ? parseInt(docValidityEnd.value, 10) : undefined,
+    phases: phases.length > 0 ? phases : undefined,
+    phase_other: phaseOther || undefined,
     description: docDescription.value.trim() || undefined,
   });
 }
@@ -223,10 +267,16 @@ async function loadDocuments() {
     const approvalClass = row.approval_status === "approved" ? "badge-indexed" : "badge-pending";
     const approvalLabel = row.approval_status === "approved" ? "aprobado" : "pendiente";
     const country = `${row.country_origin || "—"} → ${row.country_applicable || "General"}`;
+    const displayName = row.title || row.filename;
     const tr = document.createElement("tr");
     tr.dataset.id = row.id;
     tr.innerHTML = `
-      <td>${escapeHtml(row.filename)}</td>
+      <td>
+        <strong>${escapeHtml(displayName)}</strong>
+        ${row.title && row.title !== row.filename ? `<br><small class="hint">${escapeHtml(row.filename)}</small>` : ""}
+        ${row.institutions ? `<br><small class="hint">${escapeHtml(row.institutions)}</small>` : ""}
+        ${row.storage_path ? `<br><small style="color:#2a9d8f">✓ Archivo disponible para descarga</small>` : ""}
+      </td>
       <td>${escapeHtml(country)}</td>
       <td><span class="badge ${approvalClass}">${approvalLabel}</span></td>
       <td>
@@ -234,7 +284,10 @@ async function loadDocuments() {
         ${row.error_message ? `<br><small>${escapeHtml(row.error_message)}</small>` : ""}
       </td>
       <td>${formatDate(row.uploaded_at)}</td>
-      <td class="row-actions"><button data-action="delete" class="secondary">Eliminar</button></td>
+      <td class="row-actions">
+        <button data-action="edit">Editar</button>
+        <button data-action="delete" class="secondary">Eliminar</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -246,7 +299,7 @@ async function loadDocuments() {
 async function loadInbox() {
   const { data, error } = await supabase
     .from("documents")
-    .select("*, document_submissions(submitter_name, submitter_email)")
+    .select("*, document_submissions(submitter_name, submitter_email, submitter_institution)")
     .eq("approval_status", "pending")
     .order("uploaded_at", { ascending: true });
   if (error) {
@@ -282,7 +335,7 @@ async function loadInbox() {
         submission
           ? `<p class="hint">Enviado por: ${escapeHtml(submission.submitter_name || "Anónimo")}${
               submission.submitter_email ? ` — ${escapeHtml(submission.submitter_email)}` : ""
-            }</p>`
+            }${submission.submitter_institution ? ` · ${escapeHtml(submission.submitter_institution)}` : ""}</p>`
           : `<p class="hint">Enviado de forma anónima (sin datos de contacto).</p>`
       }
       <details>
@@ -345,12 +398,23 @@ inboxList.addEventListener("click", async (e) => {
 });
 
 document.querySelector("#documents-table tbody").addEventListener("click", async (e) => {
-  const btn = e.target.closest("button[data-action='delete']");
+  const btn = e.target.closest("button[data-action]");
   if (!btn) return;
   const tr = btn.closest("tr");
-  if (!confirm("¿Eliminar este documento y sus fragmentos indexados?")) return;
-  await supabase.from("documents").delete().eq("id", tr.dataset.id);
-  loadDocuments();
+  const id = tr.dataset.id;
+
+  if (btn.dataset.action === "edit") {
+    const { data, error } = await supabase.from("documents").select("*").eq("id", id).single();
+    if (error || !data) { alert("No se pudo cargar el documento."); return; }
+    openEditModal(data);
+    return;
+  }
+
+  if (btn.dataset.action === "delete") {
+    if (!confirm("¿Eliminar este documento y sus fragmentos indexados?")) return;
+    await supabase.from("documents").delete().eq("id", id);
+    loadDocuments();
+  }
 });
 
 fileInput.addEventListener("change", async () => {
@@ -365,7 +429,31 @@ fileInput.addEventListener("change", async () => {
     uploadStatus.textContent = "Generando embeddings e indexando...";
     const result = await ingestDocument(file.name, file.type, text);
     if (result.error) throw new Error(result.error);
-    uploadStatus.textContent = `Listo: "${file.name}" agregado (${result.chunks} fragmentos).`;
+
+    if (result.upload_url) {
+      uploadStatus.textContent = `Indexado (${result.chunks} fragmentos). Subiendo archivo original...`;
+      try {
+        await fetch(result.upload_url, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+        });
+        uploadStatus.textContent = `Listo: "${file.name}" indexado y guardado para descarga (${result.chunks} fragmentos).`;
+      } catch {
+        uploadStatus.textContent = `Indexado (${result.chunks} fragmentos). Nota: el archivo no pudo guardarse para descarga.`;
+      }
+    } else {
+      uploadStatus.textContent = `Listo: "${file.name}" agregado (${result.chunks} fragmentos).`;
+    }
+
+    // Reset new metadata fields
+    docTitle.value = "";
+    docPubDate.value = "";
+    docInstitutions.value = "";
+    docValidityStart.value = "";
+    docValidityEnd.value = "";
+    docDescription.value = "";
+    fillPhasesCheckboxes(docPhasesContainer);
     loadDocuments();
   } catch (err) {
     uploadStatus.textContent = "Error: " + err.message;
@@ -389,6 +477,98 @@ textForm.addEventListener("submit", async (e) => {
     alert("Error: " + err.message);
   }
 });
+
+// ----------------------------------------------------------
+// Modal de edición de documentos
+// ----------------------------------------------------------
+function openEditModal(doc) {
+  editDocId = doc.id;
+
+  editTitle.value = doc.title || "";
+  editPubDate.value = doc.publication_date || "";
+  editInstitutions.value = doc.institutions || "";
+  editValidityStart.value = doc.validity_start_year || "";
+  editValidityEnd.value = doc.validity_end_year || "";
+  editDescription.value = doc.description || "";
+  editStatus.textContent = "";
+
+  editCountryOrigin.value = doc.country_origin || "";
+  editCountryApplicable.value = doc.country_applicable || "";
+
+  fillPhasesCheckboxes(editPhasesContainer, doc.phases || [], doc.phase_other || "");
+
+  editFileStatus.textContent = doc.storage_path
+    ? `Archivo guardado: ${doc.storage_path.split("/").pop()}`
+    : "No hay archivo descargable guardado aún.";
+  editFileInput.value = "";
+  editFileUploadStatus.textContent = "";
+
+  editModal.showModal();
+}
+
+editForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!editDocId) return;
+
+  const { phases, phaseOther } = readPhasesCheckboxes(editPhasesContainer);
+
+  editStatus.textContent = "Guardando...";
+  const result = await callFunction("update-document", {
+    document_id: editDocId,
+    title: editTitle.value.trim() || null,
+    publication_date: editPubDate.value || null,
+    institutions: editInstitutions.value.trim() || null,
+    validity_start_year: editValidityStart.value ? parseInt(editValidityStart.value, 10) : null,
+    validity_end_year: editValidityEnd.value ? parseInt(editValidityEnd.value, 10) : null,
+    phases: phases.length > 0 ? phases : null,
+    phase_other: phaseOther || null,
+    country_origin: editCountryOrigin.value || null,
+    country_applicable: editCountryApplicable.value || null,
+    description: editDescription.value.trim() || null,
+  });
+
+  if (result.error) {
+    editStatus.textContent = "Error: " + result.error;
+    return;
+  }
+
+  editStatus.textContent = "Guardado correctamente.";
+  loadDocuments();
+  setTimeout(() => editModal.close(), 1000);
+});
+
+editFileInput.addEventListener("change", async () => {
+  const file = editFileInput.files[0];
+  if (!file || !editDocId) return;
+
+  editFileUploadStatus.textContent = "Obteniendo URL de subida...";
+  const result = await callFunction("update-document", {
+    document_id: editDocId,
+    request_upload_url: true,
+    filename_for_upload: file.name,
+  });
+
+  if (result.error || !result.upload_url) {
+    editFileUploadStatus.textContent = "Error al obtener URL de subida: " + (result.error || "sin URL");
+    return;
+  }
+
+  editFileUploadStatus.textContent = "Subiendo archivo...";
+  try {
+    const putRes = await fetch(result.upload_url, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+    });
+    if (!putRes.ok) throw new Error(`HTTP ${putRes.status}`);
+    editFileUploadStatus.textContent = `✓ Archivo "${escapeHtml(file.name)}" subido correctamente.`;
+    editFileStatus.textContent = `Archivo guardado: ${escapeHtml(file.name)}`;
+  } catch (err) {
+    editFileUploadStatus.textContent = "Error al subir el archivo: " + err.message;
+  }
+});
+
+editCancelBtn.addEventListener("click", () => editModal.close());
 
 // ----------------------------------------------------------
 // Clima

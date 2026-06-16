@@ -201,3 +201,66 @@ th {
   gap: 8px;
   margin-top: 8px;
 }
+
+.fields-row {
+  display: flex;
+  gap: 12px;
+}
+.fields-row label { flex: 1; }
+
+.phases-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.phase-check-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: normal;
+  background: #f4f6f8;
+  border: 1px solid #d6dade;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.phase-check-label:hover { background: #e6e9ec; }
+.phase-other-input {
+  margin-left: 4px;
+  border: 1px solid #d6dade;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+/* Modal de edición de documentos */
+dialog#edit-modal {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+  max-width: 560px;
+  width: 100%;
+}
+dialog#edit-modal::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+dialog#edit-modal h2 { margin-top: 0; }
+dialog#edit-modal h3 { margin-top: 0; font-size: 14px; }
+dialog#edit-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: none;
+}
+dialog#edit-modal .card {
+  margin-bottom: 0;
+  padding: 12px 14px;
+}
+dialog#edit-modal .row-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}

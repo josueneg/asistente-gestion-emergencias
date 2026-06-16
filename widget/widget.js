@@ -55,6 +55,15 @@
   var STORAGE_SESSION = STORAGE_PREFIX + "sessionId";
   var STORAGE_LAST_ALERT = STORAGE_PREFIX + "lastAlertCreatedAt";
   var STORAGE_VOICE = STORAGE_PREFIX + "voiceEnabled";
+  var STORAGE_REGION = STORAGE_PREFIX + "selectedRegion";
+
+  var REGION_COUNTRIES = [
+    "Panamá", "Costa Rica", "Nicaragua", "Honduras",
+    "El Salvador", "Guatemala", "Belice", "República Dominicana",
+  ];
+  var REGIONAL_LABEL = "Toda la región (Centroamérica y República Dominicana)";
+
+  var introShown = false;
 
   function getSessionId() {
     var id = localStorage.getItem(STORAGE_SESSION);
@@ -159,7 +168,10 @@
     + "  border-left: 4px solid #e63946; cursor: pointer; animation: coe-fade-in .25s ease-out;"
     + "}"
     + "@keyframes coe-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }"
-    + ".coe-empty { color: #888; text-align: center; padding: 20px 8px; font-size: 13px; }";
+    + ".coe-empty { color: #888; text-align: center; padding: 20px 8px; font-size: 13px; }"
+    + ".coe-region-selector { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: #fff; border: 1px solid #e0e4e8; border-radius: 10px; max-width: 96%; align-self: flex-start; }"
+    + ".coe-region-btn { padding: 5px 10px; background: #f4f6f8; border: 1px solid #d6dade; border-radius: 6px; font-size: 12px; cursor: pointer; color: #1c2b33; }"
+    + ".coe-region-btn:hover { background: #0b4f6c; color: #fff; border-color: #0b4f6c; }";
 
   // ----------------------------------------------------------
   // Construcción del DOM
@@ -193,6 +205,7 @@
     '<div class="coe-toolbar">' +
     '<button class="coe-reco-btn" title="Generar recomendaciones a partir de los documentos aprobados">💡 Ideas de mejora</button>' +
     '<a class="coe-biblioteca-link" target="_blank" rel="noopener" title="Ver documentos en los que se basa el asistente">📚 Biblioteca</a>' +
+    '<button class="coe-region-select-btn" title="Cambiar país o región de consulta">🌎 País</button>' +
     "</div>" +
     '<div class="coe-feed"></div>' +
     '<div class="coe-input-row">' +
@@ -209,6 +222,7 @@
   var closeBtn = panel.querySelector(".coe-close-btn");
   var recoBtn = panel.querySelector(".coe-reco-btn");
   var bibliotecaLink = panel.querySelector(".coe-biblioteca-link");
+  var regionSelectBtn = panel.querySelector(".coe-region-select-btn");
   var badge = fab.querySelector(".coe-badge");
 
   (function setupBibliotecaLink() {
@@ -250,9 +264,83 @@
     return panel.classList.contains("coe-open");
   }
 
+  // ----------------------------------------------------------
+  // Selección de país / región
+  // ----------------------------------------------------------
+  function hasRegionSelected() {
+    // config.country set via data-country → always has a fixed country
+    if (config.country) return true;
+    // User previously chose (including "" = regional)
+    return localStorage.getItem(STORAGE_REGION) !== null;
+  }
+
+  function getActiveCountry() {
+    if (config.country) return config.country;
+    var saved = localStorage.getItem(STORAGE_REGION);
+    return (saved !== null && saved !== "") ? saved : undefined;
+  }
+
+  function selectRegion(country) {
+    localStorage.setItem(STORAGE_REGION, country);
+    // Remove any open selector
+    var sel = feed.querySelector(".coe-region-selector");
+    if (sel) sel.remove();
+    var label = country || REGIONAL_LABEL;
+    renderBotMessage(
+      "Entendido. Consultaré información para " + label + ".\n¡Ahora puedes escribir tu pregunta!",
+    );
+    textarea.disabled = false;
+    sendBtn.disabled = false;
+    textarea.focus();
+  }
+
+  function renderRegionSelector() {
+    // Remove any existing selector first
+    var existing = feed.querySelector(".coe-region-selector");
+    if (existing) existing.remove();
+
+    var container = document.createElement("div");
+    container.className = "coe-region-selector";
+
+    // "Toda la región" option first
+    var allBtn = document.createElement("button");
+    allBtn.className = "coe-region-btn";
+    allBtn.textContent = "🌎 " + REGIONAL_LABEL.split("(")[0].trim();
+    allBtn.addEventListener("click", function () { selectRegion(""); });
+    container.appendChild(allBtn);
+
+    REGION_COUNTRIES.forEach(function (country) {
+      var btn = document.createElement("button");
+      btn.className = "coe-region-btn";
+      btn.textContent = country;
+      btn.addEventListener("click", function () { selectRegion(country); });
+      container.appendChild(btn);
+    });
+
+    appendToFeed(container);
+  }
+
+  function showIntro() {
+    renderBotMessage(
+      "¡Hola! Soy el Asistente Virtual del COE (Centro de Operaciones de Emergencia) para " +
+      "Centroamérica y República Dominicana.\n\n" +
+      "Respondo preguntas sobre planes, protocolos y buenas prácticas de gestión de riesgos " +
+      "y emergencias, a partir de los documentos oficiales aprobados en la biblioteca.\n\n" +
+      "Mi base de conocimiento crece automáticamente cada vez que se aprueba un nuevo documento.\n\n" +
+      "¿Sobre qué país deseas consultar, o prefieres a nivel de toda la región?",
+    );
+    renderRegionSelector();
+    textarea.disabled = true;
+    sendBtn.disabled = true;
+  }
+
   function openPanel() {
     panel.classList.add("coe-open");
     setUnread(0);
+    if (!hasRegionSelected() && !introShown) {
+      showIntro();
+      introShown = true;
+    }
     feed.scrollTop = feed.scrollHeight;
   }
 
@@ -468,7 +556,7 @@
         site_key: config.siteKey,
         session_id: getSessionId(),
         question: question,
-        country: config.country || undefined,
+        country: getActiveCountry(),
       }),
     })
       .then(function (res) {
@@ -499,8 +587,9 @@
   function sendRecommendations() {
     recoBtn.disabled = true;
 
+    var activeCountry = getActiveCountry();
     renderUserMessage(
-      "💡 Ideas de mejora" + (config.country ? " para " + config.country : ""),
+      "💡 Ideas de mejora" + (activeCountry ? " para " + activeCountry : " para la región"),
     );
     var thinking = renderBotMessage("Analizando los documentos aprobados...");
 
@@ -511,7 +600,7 @@
         site_key: config.siteKey,
         session_id: getSessionId(),
         mode: "recommendations",
-        country: config.country || undefined,
+        country: getActiveCountry(),
       }),
     })
       .then(function (res) {
@@ -547,6 +636,9 @@
     }
   });
   recoBtn.addEventListener("click", sendRecommendations);
+  regionSelectBtn.addEventListener("click", function () {
+    renderRegionSelector();
+  });
 
   // ----------------------------------------------------------
   // Inicio

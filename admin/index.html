@@ -63,11 +63,8 @@
       <!-- Documentos -->
       <div id="tab-documentos" class="tab-panel active">
         <div class="card">
-          <h2>Clasificación (aplica a la próxima subida)</h2>
-          <p class="hint">
-            Indica de qué país es el documento y a qué país aplica. Si dejas "País al que aplica"
-            como general, el documento se usará para todos los países.
-          </p>
+          <h2>Subir documento (PDF, Word o Excel)</h2>
+          <p>El archivo se indexa para el asistente y se guarda para que otros puedan descargarlo.</p>
           <div class="fields">
             <label>País de procedencia
               <select id="doc-country-origin"></select>
@@ -75,15 +72,29 @@
             <label>País al que aplica
               <select id="doc-country-applicable"></select>
             </label>
+            <label>Título del documento (opcional, si no se indica se usa el nombre del archivo)
+              <input type="text" id="doc-title" placeholder="Ej: Plan Nacional de Gestión de Riesgos 2024" />
+            </label>
+            <label>Fecha de publicación (opcional)
+              <input type="date" id="doc-pub-date" />
+            </label>
+            <label>Instituciones autoras/colaboradoras (opcional)
+              <input type="text" id="doc-institutions" placeholder="Ej: SINAPROC, Cruz Roja, CEPREDENAC" />
+            </label>
+            <div class="fields-row">
+              <label>Vigencia desde (año)
+                <input type="number" id="doc-validity-start" min="1990" max="2100" placeholder="Ej: 2022" />
+              </label>
+              <label>Vigencia hasta (año)
+                <input type="number" id="doc-validity-end" min="1990" max="2100" placeholder="Ej: 2030" />
+              </label>
+            </div>
+            <label>Sección del ciclo DRM (puede marcar varias)</label>
+            <div id="doc-phases" class="phases-group"></div>
             <label>Descripción breve (opcional)
               <textarea id="doc-description" rows="2" placeholder="Ej: Plan nacional de respuesta a inundaciones, edición 2024"></textarea>
             </label>
           </div>
-        </div>
-
-        <div class="card">
-          <h2>Subir documento (PDF, Word o Excel)</h2>
-          <p>El archivo se procesa en tu navegador; solo se envía el texto extraído al servidor.</p>
           <input type="file" id="file-input" accept=".pdf,.docx,.xlsx,.xls" />
           <p id="upload-status"></p>
         </div>
@@ -109,7 +120,7 @@
           <h2>Documentos indexados</h2>
           <table id="documents-table">
             <thead>
-              <tr><th>Archivo</th><th>País</th><th>Aprobación</th><th>Estado</th><th>Fecha</th><th></th></tr>
+              <tr><th>Título / Archivo</th><th>País</th><th>Aprobación</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -226,6 +237,57 @@
       </div>
     </section>
   </main>
+
+  <!-- Modal de edición de metadatos de documento -->
+  <dialog id="edit-modal">
+    <form id="edit-form">
+      <h2>Editar documento</h2>
+
+      <label>Título del documento
+        <input type="text" id="edit-title" placeholder="Nombre visible en la biblioteca" />
+      </label>
+      <label>Fecha de publicación
+        <input type="date" id="edit-pub-date" />
+      </label>
+      <label>Instituciones autoras / colaboradoras
+        <textarea id="edit-institutions" rows="2" placeholder="Ej: SINAPROC, Cruz Roja, CEPREDENAC"></textarea>
+      </label>
+      <div class="fields-row">
+        <label>Vigencia desde (año)
+          <input type="number" id="edit-validity-start" min="1990" max="2100" placeholder="Ej: 2022" />
+        </label>
+        <label>Vigencia hasta (año)
+          <input type="number" id="edit-validity-end" min="1990" max="2100" placeholder="Ej: 2030" />
+        </label>
+      </div>
+      <label>Sección del ciclo DRM</label>
+      <div id="edit-phases" class="phases-group"></div>
+      <label>País de procedencia
+        <select id="edit-country-origin"></select>
+      </label>
+      <label>País al que aplica
+        <select id="edit-country-applicable"></select>
+      </label>
+      <label>Descripción breve
+        <textarea id="edit-description" rows="2"></textarea>
+      </label>
+
+      <div class="card" id="edit-file-section">
+        <h3>Archivo descargable</h3>
+        <p id="edit-file-status" class="hint"></p>
+        <label>Adjuntar / reemplazar archivo
+          <input type="file" id="edit-file-input" accept=".pdf,.docx,.xlsx,.xls" />
+        </label>
+        <p id="edit-file-upload-status" class="hint"></p>
+      </div>
+
+      <div class="row-actions">
+        <button type="submit" id="edit-save-btn">Guardar cambios</button>
+        <button type="button" id="edit-cancel-btn" class="secondary">Cancelar</button>
+      </div>
+      <p id="edit-status" class="hint"></p>
+    </form>
+  </dialog>
 
   <script type="module" src="admin.js"></script>
 </body>

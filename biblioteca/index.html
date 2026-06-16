@@ -5,6 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Biblioteca de documentos - Asistente de Gestión de Emergencias</title>
   <link rel="stylesheet" href="../shared/public.css" />
+  <style>
+    .phase-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      margin: 2px;
+    }
+    .doc-download-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 6px 14px;
+      background: #0b4f6c;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .doc-download-btn:hover { background: #0d6986; }
+    .vigencia-badge {
+      font-size: 12px;
+      color: #555;
+    }
+    .filter-label-gap {
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -32,6 +63,10 @@
       <label>
         Filtrar por país
         <select id="country-filter"></select>
+      </label>
+      <label class="filter-label-gap">
+        Filtrar por sección del ciclo DRM
+        <select id="phase-filter"></select>
       </label>
     </div>
 

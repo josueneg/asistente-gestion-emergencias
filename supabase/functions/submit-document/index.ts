@@ -2,17 +2,29 @@
 //
 // Endpoint público (sin autenticación) usado por la página "enviar/"
 // para que cualquier persona proponga un documento para la biblioteca.
-// El texto ya viene extraído (se parsea en el navegador, igual que en
-// el panel admin). El documento queda con approval_status='pending'
-// hasta que el admin lo revise desde el panel ("Bandeja de entrada").
+// El texto ya viene extraído (se parsea en el navegador). El documento
+// queda con approval_status='pending' hasta que el admin lo revise.
+//
+// Campos del remitente (nombre, correo, institución) son OBLIGATORIOS
+// desde Fase 2.
+//
+// Retorna también un 'upload_url' (signed URL de Supabase Storage) para
+// que el cliente suba el archivo original directamente vía PUT — esto
+// permite descargar el documento desde la biblioteca una vez aprobado.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { isValidCountry } from "../_shared/countries.ts";
+import { isValidPhase } from "../_shared/phases.ts";
+import {
+  createSignedUploadUrl,
+  documentStoragePath,
+} from "../_shared/storage.ts";
 
 const RATE_LIMIT_PER_HOUR = 5;
 const MIN_TEXT_LENGTH = 50;
 const MAX_TEXT_LENGTH = 400000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function hashIp(ip: string): Promise<string> {
   const data = new TextEncoder().encode(ip);
@@ -41,8 +53,11 @@ Deno.serve(async (req) => {
     country_origin?: string;
     country_applicable?: string;
     description?: string;
+    phases?: string[];
+    phase_other?: string;
     submitter_name?: string;
     submitter_email?: string;
+    submitter_institution?: string;
   };
   try {
     payload = await req.json();
@@ -58,11 +73,30 @@ Deno.serve(async (req) => {
     description,
     submitter_name,
     submitter_email,
+    submitter_institution,
   } = payload;
 
+  // Campos requeridos del documento
   if (!filename || !text || !country_origin) {
     return jsonResponse(
       { error: "Faltan 'filename', 'text' o 'country_origin'" },
+      400,
+    );
+  }
+
+  // Campos requeridos del remitente (obligatorios desde Fase 2)
+  if (!submitter_name?.trim()) {
+    return jsonResponse({ error: "Tu nombre es obligatorio" }, 400);
+  }
+  if (!submitter_email?.trim() || !EMAIL_RE.test(submitter_email.trim())) {
+    return jsonResponse(
+      { error: "Correo electrónico inválido o no proporcionado" },
+      400,
+    );
+  }
+  if (!submitter_institution?.trim()) {
+    return jsonResponse(
+      { error: "La institución a la que perteneces es obligatoria" },
       400,
     );
   }
@@ -86,6 +120,10 @@ Deno.serve(async (req) => {
   if (countryApplicable && !isValidCountry(countryApplicable)) {
     return jsonResponse({ error: "País al que aplica inválido" }, 400);
   }
+
+  const phases = Array.isArray(payload.phases)
+    ? payload.phases.filter((p) => isValidPhase(p))
+    : null;
 
   // 1. Límite simple por IP (anti-abuso del buzón público)
   const ip =
@@ -121,6 +159,10 @@ Deno.serve(async (req) => {
   );
 
   // 2. Crear el documento en estado "pendiente de revisión"
+  const storagePath = documentStoragePath(
+    "pending_placeholder",
+    filename,
+  );
   const { data: doc, error: insertError } = await admin
     .from("documents")
     .insert({
@@ -133,6 +175,8 @@ Deno.serve(async (req) => {
       country_applicable: countryApplicable,
       description: description?.trim() || null,
       raw_text: trimmed,
+      phases: phases && phases.length > 0 ? phases : null,
+      phase_other: payload.phase_other?.trim() || null,
     })
     .select("id")
     .single();
@@ -144,17 +188,26 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 3. Guardar datos de contacto (si se dieron) para poder notificar
-  if (submitter_name?.trim() || submitter_email?.trim()) {
-    await admin.from("document_submissions").insert({
-      document_id: doc.id,
-      submitter_name: submitter_name?.trim() || null,
-      submitter_email: submitter_email?.trim() || null,
-    });
-  }
+  // 3. Preparar la ruta de almacenamiento con el ID real y generar la URL firmada
+  const realStoragePath = documentStoragePath(doc.id, filename);
+  await admin
+    .from("documents")
+    .update({ storage_path: realStoragePath })
+    .eq("id", doc.id);
+
+  const uploadUrl = await createSignedUploadUrl(admin, doc.id, filename);
+
+  // 4. Guardar datos del remitente (ahora siempre obligatorios)
+  await admin.from("document_submissions").insert({
+    document_id: doc.id,
+    submitter_name: submitter_name.trim(),
+    submitter_email: submitter_email.trim(),
+    submitter_institution: submitter_institution.trim(),
+  });
 
   return jsonResponse({
     document_id: doc.id,
+    upload_url: uploadUrl,
     message: "Documento recibido. Será revisado por el equipo del COE.",
   });
 });

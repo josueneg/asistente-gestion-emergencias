@@ -5,15 +5,22 @@
 // fragmentos, genera sus embeddings con Gemini y los guarda en
 // la base vectorial para que "chat" pueda usarlos (RAG).
 //
-// Requiere que quien llama esté autenticado (personal del COE).
-// Las subidas hechas desde el panel admin se consideran aprobadas
-// de entrada (a diferencia de las enviadas por el público vía
-// "submit-document", que quedan pendientes de revisión).
+// Requiere autenticación (personal del COE). Las subidas del admin
+// se aprueban directamente, a diferencia del flujo público (submit-document).
+//
+// Desde Fase 2: acepta metadatos opcionales (título, fecha publicación,
+// instituciones, vigencia, fases) y retorna 'upload_url' para adjuntar
+// el archivo original al Storage.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { indexDocumentChunks } from "../_shared/index-document.ts";
 import { isValidCountry } from "../_shared/countries.ts";
+import { isValidPhase } from "../_shared/phases.ts";
+import {
+  createSignedUploadUrl,
+  documentStoragePath,
+} from "../_shared/storage.ts";
 
 Deno.serve(async (req) => {
   const optionsResponse = handleOptions(req);
@@ -45,6 +52,13 @@ Deno.serve(async (req) => {
     country_origin?: string;
     country_applicable?: string;
     description?: string;
+    title?: string;
+    publication_date?: string;
+    institutions?: string;
+    validity_start_year?: number;
+    validity_end_year?: number;
+    phases?: string[];
+    phase_other?: string;
   };
   try {
     payload = await req.json();
@@ -66,9 +80,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "País al que aplica inválido" }, 400);
   }
 
+  const phases = Array.isArray(payload.phases)
+    ? payload.phases.filter((p) => isValidPhase(p))
+    : null;
+
   // 3. Cliente con privilegios para escribir en la base de datos
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  const storagePath = documentStoragePath("placeholder", filename);
   const { data: doc, error: insertError } = await admin
     .from("documents")
     .insert({
@@ -82,6 +101,13 @@ Deno.serve(async (req) => {
       country_applicable: countryApplicable,
       description: description?.trim() || null,
       raw_text: text,
+      title: payload.title?.trim() || null,
+      publication_date: payload.publication_date || null,
+      institutions: payload.institutions?.trim() || null,
+      validity_start_year: payload.validity_start_year ?? null,
+      validity_end_year: payload.validity_end_year ?? null,
+      phases: phases && phases.length > 0 ? phases : null,
+      phase_other: payload.phase_other?.trim() || null,
     })
     .select()
     .single();
@@ -93,11 +119,21 @@ Deno.serve(async (req) => {
     );
   }
 
+  // Actualizar storage_path con el ID real del documento
+  const realStoragePath = documentStoragePath(doc.id, filename);
+  await admin
+    .from("documents")
+    .update({ storage_path: realStoragePath })
+    .eq("id", doc.id);
+
+  // Generar URL firmada para que el admin suba el archivo original
+  const uploadUrl = await createSignedUploadUrl(admin, doc.id, filename);
+
   // 4. Dividir en fragmentos y generar embeddings
   try {
     const chunks = await indexDocumentChunks(admin, doc.id, text);
     await admin.from("documents").update({ status: "indexed" }).eq("id", doc.id);
-    return jsonResponse({ document_id: doc.id, chunks });
+    return jsonResponse({ document_id: doc.id, chunks, upload_url: uploadUrl });
   } catch (err) {
     await admin
       .from("documents")

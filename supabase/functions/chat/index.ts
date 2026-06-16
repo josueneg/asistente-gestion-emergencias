@@ -143,16 +143,19 @@ Deno.serve(async (req) => {
   }
 
   // 4. Generar respuesta con Groq
-  const countrySuffix = countryFilter ? ` de ${countryFilter}` : "";
+  const regionScope = countryFilter
+    ? `con enfoque en ${countryFilter}`
+    : "para la región de Centroamérica y República Dominicana";
+  const regionSuffix = countryFilter ? ` de ${countryFilter}` : " de la región";
   let systemPrompt: string;
   let userMessage: string;
 
   if (isRecommendations) {
     systemPrompt =
-      `Eres un analista experto en gestión de riesgos y emergencias${countrySuffix}.
+      `Eres un analista experto en gestión de riesgos y emergencias ${regionScope}.
 A partir EXCLUSIVAMENTE de los fragmentos de documentos aprobados que se listan abajo,
 identifica entre 3 y 6 mejoras concretas y priorizadas para fortalecer la gestión de
-emergencias${countrySuffix}. Para cada mejora indica: (1) qué mejorar, (2) en qué documento
+emergencias${regionSuffix}. Para cada mejora indica: (1) qué mejorar, (2) en qué documento
 se basa, (3) una acción concreta sugerida.
 Si los fragmentos no cubren algún tema importante, señálalo explícitamente como un vacío de
 información y sugiere qué tipo de documento haría falta.
@@ -161,7 +164,7 @@ Responde en español, en una lista numerada, de forma clara, directa y muy anal�
 ${
         contextText
           ? `FRAGMENTOS DISPONIBLES:\n${contextText}`
-          : `No hay documentos aprobados disponibles${countrySuffix} todavía. Indícalo ` +
+          : `No hay documentos aprobados disponibles${regionSuffix} todavía. Indícalo ` +
             `explícitamente y sugiere qué tipo de documentos sería útil incorporar a la ` +
             `biblioteca para poder generar recomendaciones.`
       }`;
@@ -170,9 +173,10 @@ ${
       : "Genera recomendaciones de mejora para la gestión de emergencias.";
   } else {
     systemPrompt =
-      `Eres el asistente virtual del Centro de Operaciones de Emergencia (COE)${countrySuffix}.
-Responde siempre en español, de forma clara, directa y MUY analítica: razona a partir de los
-documentos antes de concluir y no inventes información que no esté en ellos.
+      `Eres el asistente virtual del COE (Centro de Operaciones de Emergencia) ${regionScope}.
+Tu base de conocimiento crece automáticamente con cada nuevo documento que se aprueba en la
+biblioteca oficial. Responde siempre en español, de forma clara, directa y MUY analítica:
+razona a partir de los documentos antes de concluir y no inventes información que no esté en ellos.
 Si hay fragmentos de manuales o planes de emergencia más abajo, básate en ellos para responder y,
 cuando aplique, da una RECOMENDACIÓN concreta siguiendo el procedimiento descrito (qué hacer, en qué
 orden y quién debería actuar).
