@@ -13,51 +13,25 @@
   </header>
 
   <main>
-    <!-- Paso 1: configuración de conexión (solo la primera vez en este navegador) -->
-    <section id="config-section" class="card hidden">
-      <h2>Configuración inicial</h2>
-      <p>
-        Estos datos se guardan únicamente en este navegador. Los encuentras en tu proyecto de
-        Supabase, en <strong>Settings → API</strong>. Ver
-        <a href="../docs/SETUP.md" target="_blank">docs/SETUP.md</a> para más detalle.
-      </p>
-      <form id="config-form">
-        <label>
-          URL del proyecto Supabase
-          <input type="url" id="cfg-url" placeholder="https://xxxxxxxx.supabase.co" required />
-        </label>
-        <label>
-          Anon key (clave pública)
-          <input type="text" id="cfg-anon" placeholder="eyJhbGciOi..." required />
-        </label>
-        <button type="submit">Guardar y continuar</button>
-      </form>
-    </section>
-
-    <!-- Paso 2: inicio de sesión -->
+    <!-- Inicio de sesión -->
     <section id="login-section" class="card hidden">
       <h2>Iniciar sesión</h2>
-      <p>
-        Usa el correo y contraseña que el administrador creó para ti en Supabase
-        (Authentication → Users). Ver <a href="../docs/SETUP.md" target="_blank">docs/SETUP.md</a>.
-      </p>
       <form id="login-form">
         <label>Correo <input type="email" id="login-email" required /></label>
         <label>Contraseña <input type="password" id="login-password" required /></label>
         <button type="submit">Entrar</button>
       </form>
       <p id="login-error" class="error hidden"></p>
-      <p><a href="#" id="change-config-link">Cambiar configuración de conexión</a></p>
     </section>
 
     <!-- Aplicación principal -->
     <section id="app-section" class="hidden">
       <nav id="tabs">
-        <button data-tab="documentos" class="tab active">Documentos</button>
-        <button data-tab="bandeja" class="tab">Bandeja de entrada</button>
-        <button data-tab="clima" class="tab">Clima</button>
-        <button data-tab="alertas" class="tab">Alertas</button>
-        <button data-tab="sitios" class="tab">Sitios / Embed</button>
+        <button type="button" data-tab="documentos" class="tab active">Documentos</button>
+        <button type="button" data-tab="bandeja" class="tab">Bandeja de entrada</button>
+        <button type="button" data-tab="clima" class="tab">Clima</button>
+        <button type="button" data-tab="alertas" class="tab">Alertas</button>
+        <button type="button" data-tab="sitios" class="tab">Sitios / Embed</button>
       </nav>
 
       <!-- Documentos -->
@@ -95,7 +69,9 @@
               <textarea id="doc-description" rows="2" placeholder="Ej: Plan nacional de respuesta a inundaciones, edición 2024"></textarea>
             </label>
           </div>
-          <input type="file" id="file-input" accept=".pdf,.docx,.xlsx,.xls" />
+          <label>Archivo (PDF, DOCX o XLSX)
+            <input type="file" id="file-input" accept=".pdf,.docx,.xlsx,.xls" />
+          </label>
           <button type="button" id="upload-btn" class="hidden">Subir e indexar</button>
           <p id="upload-status"></p>
         </div>
@@ -157,7 +133,7 @@
               <tr>
                 <th>Ubicación</th><th>Lat</th><th>Lon</th>
                 <th>Umbral lluvia (mm/h)</th><th>Umbral viento (km/h)</th>
-                <th>Activo</th><th></th>
+                <th>Activo</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody></tbody>

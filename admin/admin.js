@@ -11,28 +11,24 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { extractText } from "../shared/extract.js";
 import { fillCountrySelect } from "../shared/countries.js";
 import { fillPhasesCheckboxes, readPhasesCheckboxes } from "../shared/phases.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../shared/config.js";
 
-const LS_URL = "coeAdmin.supabaseUrl";
-const LS_ANON = "coeAdmin.supabaseAnonKey";
 const LS_WIDGET_URL = "coeAdmin.widgetUrl";
 
-let supabase = null;
-let supabaseUrl = "";
-let supabaseAnonKey = "";
+const supabaseUrl = SUPABASE_URL;
+const supabaseAnonKey = SUPABASE_ANON_KEY;
+let supabase = createClient(supabaseUrl, supabaseAnonKey);
 let editDocId = null;
 
 // ----------------------------------------------------------
 // Referencias del DOM
 // ----------------------------------------------------------
-const configSection = document.getElementById("config-section");
 const loginSection = document.getElementById("login-section");
 const appSection = document.getElementById("app-section");
 const logoutBtn = document.getElementById("logout-btn");
 
-const configForm = document.getElementById("config-form");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
-const changeConfigLink = document.getElementById("change-config-link");
 
 const fileInput = document.getElementById("file-input");
 const uploadBtn = document.getElementById("upload-btn");
@@ -160,24 +156,15 @@ async function ingestDocument(filename, mimeType, text) {
 }
 
 // ----------------------------------------------------------
-// Configuración inicial / login
+// Login / sesión
 // ----------------------------------------------------------
-function showConfig() {
-  configSection.classList.remove("hidden");
-  loginSection.classList.add("hidden");
-  appSection.classList.add("hidden");
-  logoutBtn.classList.add("hidden");
-}
-
 function showLogin() {
-  configSection.classList.add("hidden");
   loginSection.classList.remove("hidden");
   appSection.classList.add("hidden");
   logoutBtn.classList.add("hidden");
 }
 
 function showApp() {
-  configSection.classList.add("hidden");
   loginSection.classList.add("hidden");
   appSection.classList.remove("hidden");
   logoutBtn.classList.remove("hidden");
@@ -200,16 +187,6 @@ async function checkSession() {
   }
 }
 
-configForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  supabaseUrl = document.getElementById("cfg-url").value.trim().replace(/\/+$/, "");
-  supabaseAnonKey = document.getElementById("cfg-anon").value.trim();
-  localStorage.setItem(LS_URL, supabaseUrl);
-  localStorage.setItem(LS_ANON, supabaseAnonKey);
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-  checkSession();
-});
-
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginError.classList.add("hidden");
@@ -222,13 +199,6 @@ loginForm.addEventListener("submit", async (e) => {
     return;
   }
   showApp();
-});
-
-changeConfigLink.addEventListener("click", (e) => {
-  e.preventDefault();
-  localStorage.removeItem(LS_URL);
-  localStorage.removeItem(LS_ANON);
-  showConfig();
 });
 
 logoutBtn.addEventListener("click", async () => {
@@ -752,22 +722,4 @@ widgetUrlForm.addEventListener("submit", (e) => {
 // ----------------------------------------------------------
 // Inicio
 // ----------------------------------------------------------
-(function init() {
-  supabaseUrl = localStorage.getItem(LS_URL);
-  supabaseAnonKey = localStorage.getItem(LS_ANON);
-  if (!supabaseUrl || !supabaseAnonKey) {
-    showConfig();
-    return;
-  }
-  try {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  } catch {
-    // Configuración guardada inválida (ej. URL mal pegada): borrarla y
-    // volver a pedirla, en vez de dejar la página en blanco.
-    localStorage.removeItem(LS_URL);
-    localStorage.removeItem(LS_ANON);
-    showConfig();
-    return;
-  }
-  checkSession();
-})();
+checkSession();
