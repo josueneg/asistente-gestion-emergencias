@@ -96,18 +96,19 @@
             </label>
           </div>
           <input type="file" id="file-input" accept=".pdf,.docx,.xlsx,.xls" />
+          <button type="button" id="upload-btn" class="hidden">Subir e indexar</button>
           <p id="upload-status"></p>
         </div>
 
         <div class="card">
-          <h2>Agregar texto o contenido de una página web</h2>
+          <h2>Agregar texto libre o notas</h2>
           <p>
-            Útil para pegar el contenido de un enlace (copia el texto de la página) o notas
-            adicionales que quieras que el asistente conozca.
+            Para agregar apuntes, resúmenes, contenido copiado de una página web u otra
+            información que quieras que el asistente conozca, sin necesidad de subir un archivo.
           </p>
           <form id="text-form">
-            <label>Título / nombre de la fuente
-              <input type="text" id="text-title" placeholder="Ej: Plan de contingencia - sitio web SINAPROC" required />
+            <label>Título o nombre de la fuente
+              <input type="text" id="text-title" placeholder="Ej: Notas internas de coordinación, sitio web SINAPROC…" required />
             </label>
             <label>Contenido
               <textarea id="text-content" rows="6" placeholder="Pega aquí el texto..." required></textarea>

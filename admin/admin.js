@@ -35,6 +35,7 @@ const loginError = document.getElementById("login-error");
 const changeConfigLink = document.getElementById("change-config-link");
 
 const fileInput = document.getElementById("file-input");
+const uploadBtn = document.getElementById("upload-btn");
 const uploadStatus = document.getElementById("upload-status");
 const textForm = document.getElementById("text-form");
 const docCountryOrigin = document.getElementById("doc-country-origin");
@@ -417,9 +418,17 @@ document.querySelector("#documents-table tbody").addEventListener("click", async
   }
 });
 
-fileInput.addEventListener("change", async () => {
+fileInput.addEventListener("change", () => {
+  uploadBtn.classList.toggle("hidden", !fileInput.files[0]);
+  uploadStatus.textContent = fileInput.files[0]
+    ? `Archivo seleccionado: ${fileInput.files[0].name}. Completa los metadatos y haz clic en "Subir e indexar".`
+    : "";
+});
+
+async function uploadSelectedFile() {
   const file = fileInput.files[0];
   if (!file) return;
+  uploadBtn.disabled = true;
   uploadStatus.textContent = "Procesando archivo en el navegador...";
   try {
     const text = await extractText(file);
@@ -446,7 +455,8 @@ fileInput.addEventListener("change", async () => {
       uploadStatus.textContent = `Listo: "${file.name}" agregado (${result.chunks} fragmentos).`;
     }
 
-    // Reset new metadata fields
+    fileInput.value = "";
+    uploadBtn.classList.add("hidden");
     docTitle.value = "";
     docPubDate.value = "";
     docInstitutions.value = "";
@@ -458,9 +468,11 @@ fileInput.addEventListener("change", async () => {
   } catch (err) {
     uploadStatus.textContent = "Error: " + err.message;
   } finally {
-    fileInput.value = "";
+    uploadBtn.disabled = false;
   }
-});
+}
+
+uploadBtn.addEventListener("click", uploadSelectedFile);
 
 textForm.addEventListener("submit", async (e) => {
   e.preventDefault();
