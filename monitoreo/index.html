@@ -13,7 +13,7 @@
     <!-- ── Encabezado ─────────────────────────────────────────────── -->
     <header id="top-bar">
       <div class="brand">
-        <div class="brand-icon">🆘</div>
+        <div class="brand-icon">🛡️</div>
         <div class="brand-text">
           <h1>Sistema de Monitoreo de Emergencias</h1>
           <p>Centroamérica y República Dominicana</p>
@@ -74,6 +74,31 @@
           <div class="legend-row"><span class="ldot ldot-bajo"></span>Bajo</div>
           <div class="legend-row"><span class="ldot ldot-info"></span>Informativo</div>
           <div class="legend-row"><span class="ldot ldot-station"></span>Estación</div>
+          <hr class="legend-sep" />
+          <div class="legend-title">Capas</div>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-hillshade" />
+            <span>🏔 Relieve</span>
+          </label>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-radar" />
+            <span>🌧 Radar</span>
+          </label>
+          <label class="legend-row legend-toggle">
+            <input type="checkbox" id="toggle-infrared" />
+            <span>☁️ Nubes IR</span>
+          </label>
+        </div>
+
+        <!-- Controles de animación radar -->
+        <div id="met-controls" class="hidden">
+          <span id="frame-time-label">🌧 —</span>
+          <input type="range" id="frame-slider" min="0" max="9" value="9" title="Seleccionar fotograma de radar" aria-label="Fotograma de radar" />
+          <div class="met-btns">
+            <button type="button" id="prev-frame-btn" title="Fotograma anterior">‹</button>
+            <button type="button" id="play-btn" title="Reproducir / pausar">▶</button>
+            <button type="button" id="next-frame-btn" title="Fotograma siguiente">›</button>
+          </div>
         </div>
 
         <!-- Botón volver al inicio -->
