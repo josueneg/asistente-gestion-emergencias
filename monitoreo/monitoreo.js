@@ -212,7 +212,7 @@ function initMap() {
 function initOverlays() {
   hillshadeLayer = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",
-    { attribution: "&copy; ESRI World Hillshade", maxZoom: 13, opacity: 0.4, zIndex: 200 },
+    { attribution: "&copy; ESRI World Hillshade", maxZoom: 13, opacity: 0.6, zIndex: 200 },
   );
 }
 
@@ -222,22 +222,23 @@ function gibsDate(offsetHours = 24) {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-// Hora reciente para GOES-East (90 min lag, cada 10 min)
+// Hora reciente para GOES-East (90 min lag, redondeada a 10 min)
 function goesTime() {
   const d = new Date(Date.now() - 90 * 60 * 1000);
   d.setUTCSeconds(0, 0);
   d.setUTCMinutes(Math.floor(d.getUTCMinutes() / 10) * 10);
-  return d.toISOString().replace(".000Z", "Z");
+  return d.toISOString().slice(0, 19) + "Z"; // "2026-06-16T12:40:00Z"
 }
 
+// Imagen de satélite GOES-East color real (NASA GIBS, ~90 min de retraso)
 function makeGOESLayer() {
   return L.tileLayer(
     `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES-East_ABI_MultiBand_GeoColor/default/${goesTime()}/GoogleMapsCompatible/{z}/{y}/{x}.jpg`,
-    { attribution: '<a href="https://worldview.earthdata.nasa.gov">NASA GIBS</a> · GOES-East', maxZoom: 9, opacity: 0.82, zIndex: 350 },
+    { attribution: '<a href="https://worldview.earthdata.nasa.gov">NASA GIBS</a> · GOES-East GeoColor', maxZoom: 9, opacity: 0.85, zIndex: 350 },
   );
 }
 
-// FIRMS/VIIRS fire hotspots via NASA GIBS (sin clave API)
+// FIRMS/VIIRS: puntos rojos donde hay incendios activos (ayer). Sin fuego = sin puntos.
 function makeFIRMSLayer() {
   return L.tileLayer(
     `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_Fires_375m_Day/default/${gibsDate(36)}/GoogleMapsCompatible/{z}/{y}/{x}.png`,
@@ -286,6 +287,13 @@ async function loadRainViewer() {
         opacity: 0.45, maxZoom: 10, attribution: "&copy; RainViewer", zIndex: 300,
       });
     }
+
+    // Si el usuario ya activó el toggle antes de que terminara la carga, aplicar ahora
+    if (radarOn && rvLayers.length > 0) {
+      setRadarFrame(rvLayers.length - 1);
+      metControls?.classList.remove("hidden");
+    }
+    if (irOn && irLayer) irLayer.addTo(map);
 
     if (toggleRadar)    toggleRadar.disabled    = rvLayers.length === 0;
     if (toggleInfrared) toggleInfrared.disabled = !irLayer;
