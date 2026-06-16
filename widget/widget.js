@@ -478,8 +478,15 @@
     };
   }
 
+  function alertsUrl(base) {
+    var activeCountry = getActiveCountry();
+    var u = config.supabaseUrl + "/rest/v1/alerts?select=*" + base;
+    if (activeCountry) u += "&country=eq." + encodeURIComponent(activeCountry);
+    return u;
+  }
+
   function loadInitialAlerts() {
-    var url = config.supabaseUrl + "/rest/v1/alerts?select=*&order=created_at.desc&limit=10";
+    var url = alertsUrl("&order=created_at.desc&limit=10");
     fetch(url, { headers: supabaseHeaders() })
       .then(function (res) {
         return res.ok ? res.json() : [];
@@ -517,8 +524,7 @@
 
   function pollAlerts() {
     var lastSeen = localStorage.getItem(STORAGE_LAST_ALERT) || new Date(0).toISOString();
-    var url = config.supabaseUrl + "/rest/v1/alerts?select=*&order=created_at.asc&created_at=gt." +
-      encodeURIComponent(lastSeen);
+    var url = alertsUrl("&order=created_at.asc&created_at=gt." + encodeURIComponent(lastSeen));
     fetch(url, { headers: supabaseHeaders() })
       .then(function (res) {
         return res.ok ? res.json() : [];

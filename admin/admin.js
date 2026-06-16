@@ -9,7 +9,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { extractText } from "../shared/extract.js";
-import { fillCountrySelect } from "../shared/countries.js";
+import { fillCountrySelect, REGION_COUNTRIES } from "../shared/countries.js";
 import { fillPhasesCheckboxes, readPhasesCheckboxes } from "../shared/phases.js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../shared/config.js";
 
@@ -66,6 +66,7 @@ const inboxList = document.getElementById("inbox-list");
 const inboxStatus = document.getElementById("inbox-status");
 
 const weatherForm = document.getElementById("weather-form");
+const wCountry = document.getElementById("w-country");
 const siteForm = document.getElementById("site-form");
 const sCountry = document.getElementById("s-country");
 const widgetUrlForm = document.getElementById("widget-url-form");
@@ -83,6 +84,19 @@ fillCountrySelect(sCountry, {
   includeGeneral: true,
   generalLabel: "Sin país específico",
 });
+// Selector de país para ubicaciones de clima (solo los 8 países de la región)
+(function fillWeatherCountry() {
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Sin especificar";
+  wCountry.appendChild(placeholder);
+  REGION_COUNTRIES.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    wCountry.appendChild(opt);
+  });
+})();
 fillCountrySelect(editCountryOrigin, {
   includeGeneral: true,
   generalLabel: "No especificado",
@@ -569,12 +583,16 @@ async function loadWeatherConfig() {
   (data ?? []).forEach((row) => {
     const tr = document.createElement("tr");
     tr.dataset.id = row.id;
+    const countryOptions = ["", ...REGION_COUNTRIES]
+      .map((c) => `<option value="${escapeHtml(c)}" ${row.country === c ? "selected" : ""}>${escapeHtml(c || "—")}</option>`)
+      .join("");
     tr.innerHTML = `
       <td>${escapeHtml(row.location_name)}</td>
-      <td><input type="number" step="any" value="${row.lat}" data-field="lat" style="width:90px"></td>
-      <td><input type="number" step="any" value="${row.lon}" data-field="lon" style="width:90px"></td>
-      <td><input type="number" step="any" value="${row.rain_threshold_mm_h}" data-field="rain_threshold_mm_h" style="width:70px"></td>
-      <td><input type="number" step="any" value="${row.wind_threshold_kmh}" data-field="wind_threshold_kmh" style="width:70px"></td>
+      <td><select data-field="country" style="width:120px">${countryOptions}</select></td>
+      <td><input type="number" step="any" value="${row.lat}" data-field="lat" style="width:80px"></td>
+      <td><input type="number" step="any" value="${row.lon}" data-field="lon" style="width:80px"></td>
+      <td><input type="number" step="any" value="${row.rain_threshold_mm_h}" data-field="rain_threshold_mm_h" style="width:65px"></td>
+      <td><input type="number" step="any" value="${row.wind_threshold_kmh}" data-field="wind_threshold_kmh" style="width:65px"></td>
       <td><input type="checkbox" data-field="enabled" ${row.enabled ? "checked" : ""}></td>
       <td class="row-actions">
         <button data-action="save">Guardar</button>
@@ -600,9 +618,12 @@ document.querySelector("#weather-table tbody").addEventListener("click", async (
 
   if (btn.dataset.action === "save") {
     const updates = {};
-    tr.querySelectorAll("input").forEach((input) => {
+    tr.querySelectorAll("input[data-field]").forEach((input) => {
       const field = input.dataset.field;
       updates[field] = input.type === "checkbox" ? input.checked : parseFloat(input.value);
+    });
+    tr.querySelectorAll("select[data-field]").forEach((sel) => {
+      updates[sel.dataset.field] = sel.value || null;
     });
     const { error } = await supabase.from("weather_config").update(updates).eq("id", id);
     if (error) alert("Error: " + error.message);
@@ -614,6 +635,7 @@ weatherForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const row = {
     location_name: document.getElementById("w-name").value.trim(),
+    country: wCountry.value || null,
     lat: parseFloat(document.getElementById("w-lat").value),
     lon: parseFloat(document.getElementById("w-lon").value),
     rain_threshold_mm_h: parseFloat(document.getElementById("w-rain").value),
@@ -649,6 +671,7 @@ async function loadAlerts() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${formatDate(row.created_at)}</td>
+      <td>${escapeHtml(row.country || "—")}</td>
       <td>${escapeHtml(row.type)}</td>
       <td><span class="badge badge-${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></td>
       <td>${escapeHtml(row.title)}</td>

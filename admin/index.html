@@ -131,8 +131,8 @@
           <table id="weather-table">
             <thead>
               <tr>
-                <th>Ubicación</th><th>Lat</th><th>Lon</th>
-                <th>Umbral lluvia (mm/h)</th><th>Umbral viento (km/h)</th>
+                <th>Ubicación</th><th>País</th><th>Lat</th><th>Lon</th>
+                <th>Lluvia (mm/h)</th><th>Viento (km/h)</th>
                 <th>Activo</th><th>Acciones</th>
               </tr>
             </thead>
@@ -143,7 +143,8 @@
         <div class="card">
           <h2>Agregar ubicación</h2>
           <form id="weather-form">
-            <label>Nombre <input type="text" id="w-name" placeholder="Ej: Colón" required /></label>
+            <label>Nombre <input type="text" id="w-name" placeholder="Ej: Ciudad de Panamá" required /></label>
+            <label>País <select id="w-country"></select></label>
             <label>Latitud <input type="number" step="any" id="w-lat" required /></label>
             <label>Longitud <input type="number" step="any" id="w-lon" required /></label>
             <label>Umbral lluvia (mm/h) <input type="number" step="any" id="w-rain" value="10" required /></label>
@@ -157,9 +158,10 @@
       <div id="tab-alertas" class="tab-panel">
         <div class="card">
           <h2>Historial de alertas</h2>
+          <p><a href="../monitoreo/index.html" target="_blank">🗺 Ver mapa de monitoreo →</a></p>
           <table id="alerts-table">
             <thead>
-              <tr><th>Fecha</th><th>Tipo</th><th>Severidad</th><th>Título</th><th>Mensaje</th></tr>
+              <tr><th>Fecha</th><th>País</th><th>Tipo</th><th>Severidad</th><th>Título</th><th>Mensaje</th></tr>
             </thead>
             <tbody></tbody>
           </table>

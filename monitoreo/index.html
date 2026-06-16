@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitoreo de Emergencias — COE Centroamérica</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="monitoreo.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── Encabezado ─────────────────────────────────────────────── -->
+    <header id="top-bar">
+      <div class="brand">
+        <div class="brand-icon">🆘</div>
+        <div class="brand-text">
+          <h1>Sistema de Monitoreo de Emergencias</h1>
+          <p>Centroamérica y República Dominicana</p>
+        </div>
+      </div>
+
+      <div class="stat-chips">
+        <div class="stat-chip chip-alto">
+          <span class="chip-dot"></span>
+          <span class="chip-label">Alto</span>
+          <strong id="count-alto">0</strong>
+        </div>
+        <div class="stat-chip chip-medio">
+          <span class="chip-dot"></span>
+          <span class="chip-label">Medio</span>
+          <strong id="count-medio">0</strong>
+        </div>
+        <div class="stat-chip chip-bajo">
+          <span class="chip-dot"></span>
+          <span class="chip-label">Bajo</span>
+          <strong id="count-bajo">0</strong>
+        </div>
+        <div class="stat-chip chip-info">
+          <span class="chip-dot"></span>
+          <span class="chip-label">Info</span>
+          <strong id="count-info">0</strong>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="country-selector-wrap">
+          <span class="selector-icon">🌎</span>
+          <select id="country-select">
+            <option value="">Toda la región</option>
+          </select>
+        </div>
+        <div class="clock-wrap">
+          <div id="live-clock">--:--:--</div>
+          <div id="refresh-row">
+            <span id="refresh-status">Actualizando…</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Cuerpo ─────────────────────────────────────────────────── -->
+    <div id="body-layout">
+
+      <!-- Mapa -->
+      <div id="map-wrap">
+        <div id="map"></div>
+
+        <!-- Leyenda flotante -->
+        <div id="map-legend">
+          <div class="legend-title">Severidad</div>
+          <div class="legend-row"><span class="ldot ldot-alto"></span>Alto</div>
+          <div class="legend-row"><span class="ldot ldot-medio"></span>Medio</div>
+          <div class="legend-row"><span class="ldot ldot-bajo"></span>Bajo</div>
+          <div class="legend-row"><span class="ldot ldot-info"></span>Informativo</div>
+          <div class="legend-row"><span class="ldot ldot-station"></span>Estación</div>
+        </div>
+
+        <!-- Botón volver al inicio -->
+        <button type="button" id="reset-view-btn" title="Ver toda la región">🌎</button>
+      </div>
+
+      <!-- Panel lateral de alertas -->
+      <aside id="alerts-panel">
+        <div id="panel-header">
+          <h2>Alertas activas</h2>
+          <span id="total-badge" class="total-badge">0</span>
+        </div>
+        <div id="alerts-list">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-icon">✅</div>
+            <p class="empty-title">Sin alertas activas</p>
+            <p class="empty-sub">La región está sin incidentes reportados en este momento.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ── Barra inferior ─────────────────────────────────────────── -->
+    <footer id="bottom-bar">
+      <span id="last-updated-text">—</span>
+      <button type="button" id="refresh-now-btn">↻ Actualizar ahora</button>
+      <a href="../index.html" class="footer-link">← Inicio</a>
+    </footer>
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script type="module" src="monitoreo.js"></script>
+</body>
+</html>
