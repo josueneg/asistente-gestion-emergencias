@@ -182,9 +182,6 @@ const historyList      = document.getElementById("history-list");
 const historyBadge     = document.getElementById("history-count-badge");
 const histChevron      = document.querySelector(".hist-chevron");
 
-const mascotSpeechTxt = document.getElementById("mascot-speech-text");
-const mascotIcon      = document.getElementById("mascot-icon");
-
 // Estadísticas de fuentes externas
 const extStatEl = document.getElementById("ext-stat");
 
@@ -230,10 +227,11 @@ function goesTime() {
   return d.toISOString().slice(0, 19) + "Z"; // "2026-06-16T12:40:00Z"
 }
 
-// Imagen de satélite GOES-East color real (NASA GIBS, ~90 min de retraso)
+// Imagen de satélite GOES-East color real (NASA GIBS)
+// Usamos solo la fecha (no el minuto exacto) para maximizar disponibilidad de tiles
 function makeGOESLayer() {
   return L.tileLayer(
-    `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES-East_ABI_MultiBand_GeoColor/default/${goesTime()}/GoogleMapsCompatible/{z}/{y}/{x}.jpg`,
+    `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES-East_ABI_MultiBand_GeoColor/default/${gibsDate(2)}/GoogleMapsCompatible/{z}/{y}/{x}.jpg`,
     { attribution: '<a href="https://worldview.earthdata.nasa.gov">NASA GIBS</a> · GOES-East GeoColor', maxZoom: 9, opacity: 0.85, zIndex: 350 },
   );
 }
@@ -288,6 +286,14 @@ async function loadRainViewer() {
       });
     }
 
+    // Fallback: si RainViewer no provee IR, usar GOES-East Band 13 (IR ventana, NASA GIBS)
+    if (!irLayer) {
+      irLayer = L.tileLayer(
+        `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES-East_ABI_Band13/default/${gibsDate(2)}/GoogleMapsCompatible/{z}/{y}/{x}.png`,
+        { opacity: 0.55, maxZoom: 9, attribution: "NASA GIBS · GOES-East IR", zIndex: 300 },
+      );
+    }
+
     // Si el usuario ya activó el toggle antes de que terminara la carga, aplicar ahora
     if (radarOn && rvLayers.length > 0) {
       setRadarFrame(rvLayers.length - 1);
@@ -295,8 +301,7 @@ async function loadRainViewer() {
     }
     if (irOn && irLayer) irLayer.addTo(map);
 
-    if (toggleRadar)    toggleRadar.disabled    = rvLayers.length === 0;
-    if (toggleInfrared) toggleInfrared.disabled = !irLayer;
+    if (toggleRadar) toggleRadar.disabled = rvLayers.length === 0;
   } catch (e) {
     console.warn("[RainViewer]", e);
   }
@@ -383,29 +388,6 @@ function updateCardLocation(alertId) {
   if (parts.length) { el.textContent = `📍 ${parts.join(" · ")}`; el.classList.remove("hidden"); }
 }
 
-// ── Mascota ───────────────────────────────────────────────────
-function updateMascot(activeAlerts) {
-  if (!mascotSpeechTxt || !mascotIcon) return;
-  const newOnes = activeAlerts.filter(a => !prevActiveIds.has(a.id));
-  prevActiveIds  = new Set(activeAlerts.map(a => a.id));
-
-  if (activeAlerts.length === 0) {
-    mascotSpeechTxt.textContent = "Monitoreo activo. Sin alertas COE en este momento.";
-  } else {
-    const n       = activeAlerts.length;
-    const hasAlto = activeAlerts.some(a => a.severity === "alto");
-    mascotSpeechTxt.textContent = hasAlto
-      ? `¡Atención! ${n} alerta${n > 1 ? "s" : ""} activa${n > 1 ? "s" : ""}. Se requiere monitoreo inmediato.`
-      : `${n} alerta${n > 1 ? "s" : ""} activa${n > 1 ? "s" : ""} en la región. Mantenga el monitoreo.`;
-  }
-
-  if (newOnes.length > 0) {
-    mascotIcon.classList.remove("mascot-alerting");
-    void mascotIcon.offsetWidth;
-    mascotIcon.classList.add("mascot-alerting");
-    setTimeout(() => mascotIcon.classList.remove("mascot-alerting"), 2200);
-  }
-}
 
 // ── Reloj / selector ─────────────────────────────────────────
 function startClock() {
@@ -755,7 +737,8 @@ function renderAlertCard(alert, historical = false) {
       <div class="alert-location hidden" id="loc-${alert.id}"></div>
       <div class="alert-card-msg">${escHtml(alert.message || "")}</div>
       <div class="alert-card-meta">
-        <div class="meta-row"><span class="meta-icon">🕐</span>${formatAgo(alert.created_at)}</div>
+        <div class="meta-row"><span class="meta-icon">🕐</span>Inicio: ${formatTime(alert.created_at)} · ${formatAgo(alert.created_at)}</div>
+        ${alert.valid_until ? `<div class="meta-row"><span class="meta-icon">⏱</span>Hasta: ${formatTime(alert.valid_until)}</div>` : ""}
         ${alert.type ? `<div class="meta-row"><span class="meta-icon">📌</span>${escHtml(alert.type)}</div>` : ""}
       </div>
       ${validityHtml}
@@ -794,7 +777,6 @@ function renderAlertsList(alerts) {
   }
 
   alerts.forEach(a => { if (a.lat && a.lon) queueGeocode(a.id, a.lat, a.lon); });
-  updateMascot(active);
 }
 
 // ── Contadores header ─────────────────────────────────────────
@@ -868,6 +850,7 @@ async function refresh() {
     renderAlertsList(alerts);
     updateStats(alerts);
     renderExternalEvents(extEvents);
+    renderVolcanoMarkers(); // debe ir después de renderExternalEvents que limpia el grupo
 
     const now = new Date().toLocaleTimeString("es-PA", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     lastUpdatedText.textContent = `Actualizado: ${now}`;
