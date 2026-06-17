@@ -483,21 +483,18 @@ body {
 .fill-warning { background: linear-gradient(90deg, #f59e0b, #d97706); }
 .fill-urgent  { background: linear-gradient(90deg, #ef4444, #dc2626); }
 
-.map-link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  font-size: 11px;
-  color: var(--info);
-  border: 1px solid var(--info);
-  border-radius: 6px;
-  padding: 3px 8px;
-  background: transparent;
+.alert-card-active {
   cursor: pointer;
-  transition: background .15s;
 }
-.map-link-btn:hover { background: #eff6ff; }
+
+.map-link-hint {
+  font-size: 10px;
+  color: var(--info);
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity .18s;
+}
+.alert-card-active:hover .map-link-hint { opacity: 1; }
 
 /* ── Empty state ── */
 .empty-state {

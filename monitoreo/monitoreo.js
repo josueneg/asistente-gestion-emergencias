@@ -10,7 +10,7 @@ import { fetchExternalEvents }          from "./sources.js";
 
 // ── Constantes ───────────────────────────────────────────────
 const REFRESH_MS  = 60_000;
-const ALERTS_DAYS = 7;
+const ALERTS_DAYS = 2; // 48 horas de ventana para historial
 
 const SEVERITY_CFG = {
   alto:  { color: "#dc2626", radius: 22, pulse: true,  fast: true,  z: 1000, label: "Alto" },
@@ -452,7 +452,8 @@ function severityClass(sev) {
 }
 function isAlertActive(alert) {
   if (alert.valid_until) return new Date(alert.valid_until) > new Date();
-  return Date.now() - new Date(alert.created_at).getTime() < 24 * 3600_000;
+  // Sin valid_until: activa 30 minutos desde la emisión; luego pasa a historial
+  return Date.now() - new Date(alert.created_at).getTime() < 30 * 60_000;
 }
 
 // ── Carga de datos (Supabase) ─────────────────────────────────
@@ -723,7 +724,7 @@ function renderAlertCard(alert, historical = false) {
   }
 
   const card = document.createElement("div");
-  card.className  = `alert-card${historical ? " alert-card-hist" : ""}`;
+  card.className  = `alert-card${historical ? " alert-card-hist" : " alert-card-active"}`;
   card.dataset.id = alert.id;
   card.innerHTML  = `
     <div class="alert-card-stripe stripe-${sev}"></div>
@@ -742,7 +743,7 @@ function renderAlertCard(alert, historical = false) {
         ${alert.type ? `<div class="meta-row"><span class="meta-icon">📌</span>${escHtml(alert.type)}</div>` : ""}
       </div>
       ${validityHtml}
-      ${canLocate && !historical ? `<button class="map-link-btn" data-id="${escHtml(String(alert.id))}">📍 Ver en mapa</button>` : ""}
+      ${canLocate && !historical ? `<div class="map-link-hint">🗺️ Clic para zoom en el mapa</div>` : ""}
     </div>`;
   return card;
 }
@@ -791,21 +792,26 @@ function updateStats(alerts) {
   totalBadge.textContent = active.length;
 }
 
-// ── Click "Ver en mapa" ──────────────────────────────────────
+// ── Click en tarjeta de alerta → zoom al mapa ────────────────
 alertsList.addEventListener("click", (e) => {
-  const btn = e.target.closest(".map-link-btn");
-  if (!btn) return;
-  const id    = btn.dataset.id;
-  const alert = allAlerts.find(a => String(a.id) === id);
-  const m     = alertMarkers.find(mk => String(mk._alertId) === id);
+  const card = e.target.closest(".alert-card-active");
+  if (!card) return;
+  const id    = card.dataset.id;
+  const alert = allAlerts.find(a => String(a.id) === String(id));
+  const m     = alertMarkers.find(mk => String(mk._alertId) === String(id));
 
   if (alert?.country) highlightCountry(alert.country, alert.severity);
 
-  if (alert?.country && COUNTRY_BOUNDS[alert.country]) {
+  if (alert?.lat && alert?.lon) {
+    // Coordenadas exactas disponibles → zoom al municipio
+    map.flyTo([alert.lat, alert.lon], 11, { duration: 1.2 });
+    setTimeout(() => { if (m) m.openPopup(); }, 1300);
+  } else if (alert?.country && COUNTRY_BOUNDS[alert.country]) {
+    // Solo país → zoom al país
     map.fitBounds(COUNTRY_BOUNDS[alert.country], { padding: [50, 50], duration: 1.2 });
     setTimeout(() => { if (m) m.openPopup(); }, 1300);
   } else if (m) {
-    map.flyTo(m.getLatLng(), 8, { duration: 1 });
+    map.flyTo(m.getLatLng(), 9, { duration: 1 });
     setTimeout(() => m.openPopup(), 1100);
   } else {
     const c = alert && COUNTRY_CENTROIDS[alert.country];
