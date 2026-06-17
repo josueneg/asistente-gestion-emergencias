@@ -3,3 +3,9 @@
 // requieren que la persona configure nada (a diferencia del panel admin).
 export const SUPABASE_URL = "https://rcoxwprgcwtivgdueqej.supabase.co";
 export const SUPABASE_ANON_KEY = "sb_publishable_UhzhuMAd7l9wV2vwOiK0sg_LkM0OAje";
+
+// API key de ArcGIS Online (Professional Plus).
+// Generar en: arcgis.com → My Organization → Developer Settings → API Keys
+// Permisos mínimos: Basemaps, Geocoding.
+// Dejar vacío ("") para usar basemaps gratuitos (CartoDB / Esri tiles públicos).
+export const ARCGIS_API_KEY = "";

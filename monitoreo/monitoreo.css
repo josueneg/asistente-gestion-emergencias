@@ -786,3 +786,41 @@ body {
   #live-clock { font-size: 15px; }
   .ext-stat-label { display: none; }
 }
+
+/* ── Selector de basemap ── */
+.basemap-btns {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.bm-btn {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #f8fafc;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+  white-space: nowrap;
+  text-align: center;
+}
+.bm-btn:hover  { background: #e2e8f0; color: var(--text-1); }
+.bm-btn.bm-active {
+  background: #0f4f8c;
+  color: #fff;
+  border-color: #0f4f8c;
+}
+
+/* ── Polígono municipal ArcGIS (pulse) ── */
+@keyframes polygon-pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.55; }
+  100% { opacity: 1; }
+}
+.admin-polygon-pulse {
+  animation: polygon-pulse 2.2s ease-in-out infinite;
+}

@@ -4,9 +4,9 @@
 //          RainViewer · NASA GIBS (GOES-East, FIRMS/VIIRS, DEM)
 // ============================================================
 
-import { REGION_COUNTRIES }             from "../shared/countries.js";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../shared/config.js";
-import { fetchExternalEvents }          from "./sources.js";
+import { REGION_COUNTRIES }                        from "../shared/countries.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, ARCGIS_API_KEY } from "../shared/config.js";
+import { fetchExternalEvents }                     from "./sources.js";
 
 // ── Constantes ───────────────────────────────────────────────
 const REFRESH_MS  = 60_000;
@@ -105,9 +105,11 @@ let countdownTimer = null;
 let secondsLeft    = REFRESH_MS / 1000;
 let prevActiveIds  = new Set();
 
-// Capa highlight
-let activeHighlight = null;
-let highlightTimer  = null;
+// Capa highlight (país) y polígono municipal (ArcGIS)
+let activeHighlight  = null;
+let highlightTimer   = null;
+let adminHighlight   = null;
+const municipalityCache = new Map(); // "lat,lon" → GeoJSON feature | null
 
 // Capas DEM / satélite
 let hillshadeLayer = null;
@@ -185,21 +187,55 @@ const histChevron      = document.querySelector(".hist-chevron");
 // Estadísticas de fuentes externas
 const extStatEl = document.getElementById("ext-stat");
 
+// ── Basemaps ──────────────────────────────────────────────────
+const BASEMAPS = {
+  dark: {
+    url:  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    opts: { subdomains: "abcd", maxZoom: 19 },
+  },
+  map: {
+    url:  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    opts: { subdomains: "abcd", maxZoom: 19 },
+  },
+  imagery: {
+    url:  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attr: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, Maxar',
+    opts: { maxZoom: 17 },
+    labelsUrl: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  },
+};
+
+let baseLayer   = null;
+let labelLayer  = null;
+let currentBasemap = "dark";
+
+function switchBasemap(key) {
+  const bm = BASEMAPS[key];
+  if (!bm) return;
+
+  if (baseLayer)  { map.removeLayer(baseLayer);  baseLayer  = null; }
+  if (labelLayer) { map.removeLayer(labelLayer); labelLayer = null; }
+
+  baseLayer = L.tileLayer(bm.url, { attribution: bm.attr, ...bm.opts, zIndex: 1 });
+  baseLayer.addTo(map);
+
+  if (bm.labelsUrl) {
+    labelLayer = L.tileLayer(bm.labelsUrl, { opacity: 0.8, zIndex: 2, maxZoom: 17 });
+    labelLayer.addTo(map);
+  }
+
+  currentBasemap = key;
+  document.querySelectorAll(".bm-btn").forEach(btn =>
+    btn.classList.toggle("bm-active", btn.dataset.bm === key),
+  );
+}
+
 // ── Mapa ─────────────────────────────────────────────────────
 function initMap() {
   map = L.map("map", { center: [11.5, -84.5], zoom: 5, zoomControl: true });
-
-  L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' +
-        ' &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: "abcd",
-      maxZoom: 18,
-    },
-  ).addTo(map);
-
+  switchBasemap("dark");
   map.fitBounds(REGION_BOUNDS, { padding: [10, 10] });
   initOverlays();
   initExtGroups();
@@ -337,21 +373,82 @@ function stopAnimation() {
   if (playBtn) playBtn.textContent = "▶";
 }
 
-// ── Highlight de país ─────────────────────────────────────────
+// ── Highlight de país y polígono municipal (ArcGIS) ───────────
 function clearHighlight() {
   if (activeHighlight) { map.removeLayer(activeHighlight); activeHighlight = null; }
+  if (adminHighlight)  { map.removeLayer(adminHighlight);  adminHighlight  = null; }
   clearTimeout(highlightTimer);
 }
+
 function highlightCountry(country, sev) {
-  clearHighlight();
+  if (activeHighlight) { map.removeLayer(activeHighlight); activeHighlight = null; }
   const bounds = COUNTRY_BOUNDS[country];
   if (!bounds) return;
   const color = SEVERITY_CFG[severityClass(sev)]?.color || "#2563eb";
   activeHighlight = L.rectangle(bounds, {
-    color, weight: 2.5, dashArray: "9 6",
-    fillColor: color, fillOpacity: 0.1, opacity: 0.85, interactive: false,
+    color, weight: 2, dashArray: "9 6",
+    fillColor: color, fillOpacity: 0.07, opacity: 0.6, interactive: false,
   }).addTo(map);
-  highlightTimer = setTimeout(clearHighlight, 12000);
+  highlightTimer = setTimeout(() => {
+    if (activeHighlight) { map.removeLayer(activeHighlight); activeHighlight = null; }
+  }, 15000);
+}
+
+// Consulta el polígono (municipio o departamento) desde ArcGIS World Admin Divisions.
+// Servicio público — no requiere API key.
+const ARCGIS_ADMIN_BASE = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Administrative_Divisions/FeatureServer";
+
+async function fetchAdminPolygon(lat, lon) {
+  const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
+  if (municipalityCache.has(key)) return municipalityCache.get(key);
+
+  const params = new URLSearchParams({
+    geometry:     `${lon},${lat}`,
+    geometryType: "esriGeometryPoint",
+    spatialRel:   "esriSpatialRelIntersects",
+    outFields:    "NAME,COUNTRY,ISO_SUB",
+    returnGeometry: "true",
+    f:            "geojson",
+  });
+
+  // Nivel 2 = municipio/distrito → fallback nivel 1 = departamento/provincia
+  for (const level of [2, 1]) {
+    try {
+      const res  = await fetch(`${ARCGIS_ADMIN_BASE}/${level}/query?${params}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.features?.length > 0) {
+        municipalityCache.set(key, data.features[0]);
+        return data.features[0];
+      }
+    } catch { continue; }
+  }
+
+  municipalityCache.set(key, null);
+  return null;
+}
+
+function showAdminPolygon(feature, sev) {
+  if (adminHighlight) { map.removeLayer(adminHighlight); adminHighlight = null; }
+  if (!feature) return;
+
+  const color = SEVERITY_CFG[severityClass(sev)]?.color || "#2563eb";
+  adminHighlight = L.geoJSON(feature, {
+    style: {
+      color,
+      weight:      2.5,
+      dashArray:   "7 4",
+      fillColor:   color,
+      fillOpacity: 0.22,
+      opacity:     0.9,
+      interactive: false,
+      className:   "admin-polygon-pulse",
+    },
+  }).addTo(map);
+
+  setTimeout(() => {
+    if (adminHighlight) { map.removeLayer(adminHighlight); adminHighlight = null; }
+  }, 18000);
 }
 
 // ── Geocodificación inversa (Nominatim, 1 req/s) ─────────────
@@ -792,7 +889,7 @@ function updateStats(alerts) {
   totalBadge.textContent = active.length;
 }
 
-// ── Click en tarjeta de alerta → zoom al mapa ────────────────
+// ── Click en tarjeta de alerta → zoom + polígono ArcGIS ──────
 alertsList.addEventListener("click", (e) => {
   const card = e.target.closest(".alert-card-active");
   if (!card) return;
@@ -803,11 +900,13 @@ alertsList.addEventListener("click", (e) => {
   if (alert?.country) highlightCountry(alert.country, alert.severity);
 
   if (alert?.lat && alert?.lon) {
-    // Coordenadas exactas disponibles → zoom al municipio
     map.flyTo([alert.lat, alert.lon], 11, { duration: 1.2 });
     setTimeout(() => { if (m) m.openPopup(); }, 1300);
+    // Consulta polígono municipal en ArcGIS (sin bloquear la animación del mapa)
+    fetchAdminPolygon(alert.lat, alert.lon).then(feature => {
+      if (feature) showAdminPolygon(feature, alert.severity);
+    });
   } else if (alert?.country && COUNTRY_BOUNDS[alert.country]) {
-    // Solo país → zoom al país
     map.fitBounds(COUNTRY_BOUNDS[alert.country], { padding: [50, 50], duration: 1.2 });
     setTimeout(() => { if (m) m.openPopup(); }, 1300);
   } else if (m) {
@@ -966,6 +1065,11 @@ prevFrameBtn?.addEventListener("click",  () => { stopAnimation(); setRadarFrame(
 nextFrameBtn?.addEventListener("click",  () => { stopAnimation(); setRadarFrame(Math.min(rvLayers.length - 1, rvFrame + 1)); });
 playBtn?.addEventListener("click",       () => { if (rvPlaying) stopAnimation(); else startAnimation(); });
 frameSlider?.addEventListener("input",   (e) => { stopAnimation(); setRadarFrame(parseInt(e.target.value, 10)); });
+
+// ── Selector de basemap ───────────────────────────────────────
+document.querySelectorAll(".bm-btn").forEach(btn => {
+  btn.addEventListener("click", () => switchBasemap(btn.dataset.bm));
+});
 
 // ── Arranque ──────────────────────────────────────────────────
 fillCountrySelect();
