@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "asistente-gestion-emergencias",
+  "compatibility_date": "2026-06-15",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "admin"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
